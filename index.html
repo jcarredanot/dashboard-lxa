@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard LXA - En Tiempo Real</title>
+    <title>Dashboard LXA</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
@@ -112,10 +112,10 @@
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            height: 400px;
+            height: 450px;
         }
         .chart-card h3 { color: #333; margin-bottom: 20px; font-size: 1.3em; }
-        .chart-card canvas { max-height: 320px !important; }
+        .chart-container { height: 350px; position: relative; }
         .table-card {
             background: white;
             padding: 25px;
@@ -214,14 +214,28 @@
                     <option value="11">Noviembre</option>
                     <option value="12">Diciembre</option>
                 </select>
-                <button class="btn" onclick="loadData()">🔄 Actualizar Datos</button>
+                <button class="btn" onclick="loadData()">🔄 Actualizar</button>
             </div>
 
             <div class="kpis" id="kpis"></div>
-            <div class="charts" id="charts"></div>
+            
+            <div class="charts">
+                <div class="chart-card">
+                    <h3>Ventas Mensuales</h3>
+                    <div class="chart-container">
+                        <canvas id="ventasChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Top 10 Vendedores</h3>
+                    <div class="chart-container">
+                        <canvas id="vendedoresChart"></canvas>
+                    </div>
+                </div>
+            </div>
             
             <div class="table-card">
-                <h3>Ventas por Vendedor - Ranking Completo</h3>
+                <h3>Ranking Completo de Vendedores</h3>
                 <div id="rankingVendedores"></div>
             </div>
             
@@ -229,6 +243,7 @@
                 <h3>Top 10 Clientes</h3>
                 <div id="topClientes"></div>
             </div>
+            
             <div class="table-card">
                 <h3>Top 10 Productos</h3>
                 <div id="topProductos"></div>
@@ -243,7 +258,7 @@
             auth: {
                 clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
                 authority: 'https://login.microsoftonline.com/45f5b6e6-42e0-4fdd-b61a-df489f75dc8c',
-                redirectUri: window.location.protocol === 'file:' ? 'file:///' : window.location.origin
+                redirectUri: window.location.origin
             },
             cache: {
                 cacheLocation: 'localStorage',
@@ -297,35 +312,27 @@
             try {
                 const token = await getAccessToken();
                 
-                // Usar el ID del archivo compartido
-                // Decodificar el sharing URL para obtener el Item ID
                 const sharingUrl = 'https://laidealmx-my.sharepoint.com/:x:/g/personal/carlosc_laideal_com_mx/EY8QlfTcVY9Kq3TQk3XcDusB6QsET2u1DfBFDnclSLBhXw';
                 const encodedUrl = 'u!' + btoa(sharingUrl).replace(/=/g, '').replace(/\//g, '_').replace(/\+/g, '-');
                 
-                // Obtener información del archivo compartido
                 const shareResponse = await fetch(
                     `https://graph.microsoft.com/v1.0/shares/${encodedUrl}/driveItem`,
-                    {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }
+                    { headers: { 'Authorization': `Bearer ${token}` } }
                 );
 
                 if (!shareResponse.ok) {
-                    throw new Error(`Error al acceder al archivo compartido: ${shareResponse.status}`);
+                    throw new Error(`Error al acceder al archivo: ${shareResponse.status}`);
                 }
 
                 const shareData = await shareResponse.json();
                 
-                // Obtener el contenido del archivo
                 const contentResponse = await fetch(
                     `https://graph.microsoft.com/v1.0/drives/${shareData.parentReference.driveId}/items/${shareData.id}/content`,
-                    {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }
+                    { headers: { 'Authorization': `Bearer ${token}` } }
                 );
 
                 if (!contentResponse.ok) {
-                    throw new Error(`Error al descargar el archivo: ${contentResponse.status}`);
+                    throw new Error(`Error al descargar: ${contentResponse.status}`);
                 }
 
                 const arrayBuffer = await contentResponse.arrayBuffer();
@@ -333,7 +340,7 @@
                 
                 const worksheet = workbook.Sheets['LXA'];
                 if (!worksheet) {
-                    throw new Error('No se encontró la hoja "LXA" en el archivo');
+                    throw new Error('No se encontró la hoja "LXA"');
                 }
 
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
@@ -349,7 +356,7 @@
                 document.getElementById('lastUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-MX')}`;
                 
             } catch (error) {
-                console.error('Error completo:', error);
+                console.error('Error:', error);
                 showError('Error al cargar datos: ' + error.message);
                 document.getElementById('loadingSection').style.display = 'none';
             }
@@ -357,22 +364,18 @@
 
         function processData(data) {
             return data.map(row => {
-                // Parsear fecha - puede venir como texto "dd/mm/yyyy" o como número de Excel
                 let fecha = null;
                 const salidaValue = row['Salida'];
                 
                 if (typeof salidaValue === 'string' && salidaValue.includes('/')) {
-                    // Formato texto: "14/10/2025"
                     const fechaParts = salidaValue.split('/');
                     if (fechaParts.length === 3) {
                         fecha = new Date(fechaParts[2], fechaParts[1] - 1, fechaParts[0]);
                     }
                 } else if (typeof salidaValue === 'number') {
-                    // Formato número de Excel (días desde 1900-01-01)
                     const excelEpoch = new Date(1899, 11, 30);
                     fecha = new Date(excelEpoch.getTime() + salidaValue * 86400000);
                 } else if (salidaValue instanceof Date) {
-                    // Ya es un objeto Date
                     fecha = salidaValue;
                 }
 
@@ -461,13 +464,13 @@
                 }
             });
 
-            const rankingVendedores = Object.entries(ventasPorVendedor)
+            const ranking = Object.entries(ventasPorVendedor)
                 .map(([nombre, total]) => ({ nombre, total }))
                 .sort((a, b) => b.total - a.total);
 
-            let html = '<table><thead><tr><th>Posición</th><th>Vendedor</th><th style="text-align: right;">Total Ventas</th></tr></thead><tbody>';
-            rankingVendedores.forEach((vendedor, idx) => {
-                html += `<tr><td><strong>${idx + 1}</strong></td><td>${vendedor.nombre}</td><td style="text-align: right;">${formatCurrency(vendedor.total)}</td></tr>`;
+            let html = '<table><thead><tr><th>#</th><th>Vendedor</th><th style="text-align: right;">Total</th></tr></thead><tbody>';
+            ranking.forEach((v, idx) => {
+                html += `<tr><td><strong>${idx + 1}</strong></td><td>${v.nombre}</td><td style="text-align: right;">${formatCurrency(v.total)}</td></tr>`;
             });
             html += '</tbody></table>';
             document.getElementById('rankingVendedores').innerHTML = html;
@@ -487,8 +490,8 @@
                 .slice(0, 10);
 
             let html = '<table><thead><tr><th>Cliente</th><th style="text-align: right;">Total</th></tr></thead><tbody>';
-            topClientes.forEach(cliente => {
-                html += `<tr><td>${cliente.nombre}</td><td style="text-align: right;">${formatCurrency(cliente.total)}</td></tr>`;
+            topClientes.forEach(c => {
+                html += `<tr><td>${c.nombre}</td><td style="text-align: right;">${formatCurrency(c.total)}</td></tr>`;
             });
             html += '</tbody></table>';
             document.getElementById('topClientes').innerHTML = html;
@@ -510,25 +513,14 @@
                 .slice(0, 10);
 
             let html = '<table><thead><tr><th>Producto</th><th style="text-align: right;">Unidades</th><th style="text-align: right;">Valor</th></tr></thead><tbody>';
-            topProductos.forEach(prod => {
-                html += `<tr><td>${prod.nombre}</td><td style="text-align: right;">${prod.cantidad}</td><td style="text-align: right;">${formatCurrency(prod.valor)}</td></tr>`;
+            topProductos.forEach(p => {
+                html += `<tr><td>${p.nombre}</td><td style="text-align: right;">${p.cantidad}</td><td style="text-align: right;">${formatCurrency(p.valor)}</td></tr>`;
             });
             html += '</tbody></table>';
             document.getElementById('topProductos').innerHTML = html;
         }
 
         function renderCharts() {
-            document.getElementById('charts').innerHTML = `
-                <div class="chart-card">
-                    <h3>Ventas Mensuales</h3>
-                    <canvas id="ventasChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h3>Ventas por Vendedor</h3>
-                    <canvas id="vendedoresChart"></canvas>
-                </div>
-            `;
-
             renderVentasChart();
             renderVendedoresChart();
         }
@@ -546,7 +538,10 @@
                 .sort((a, b) => a[0].localeCompare(b[0]))
                 .slice(-12);
 
-            new Chart(document.getElementById('ventasChart'), {
+            const ctx = document.getElementById('ventasChart');
+            if (window.ventasChartInstance) window.ventasChartInstance.destroy();
+            
+            window.ventasChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: data.map(d => d[0]),
@@ -562,22 +557,24 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    aspectRatio: 2,
                     plugins: { 
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return formatCurrency(context.parsed.y);
-                                }
+                                label: (context) => formatCurrency(context.parsed.y)
                             }
                         }
                     },
                     scales: {
                         y: {
                             ticks: {
-                                callback: function(value) {
-                                    return '
+                                callback: (value) => '$' + (value / 1000000).toFixed(1) + 'M'
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         function renderVendedoresChart() {
             const ventasPorVendedor = {};
@@ -587,12 +584,14 @@
                 }
             });
 
-            // Limitar a top 10 vendedores para evitar gráfica muy larga
             const data = Object.entries(ventasPorVendedor)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 10);
 
-            new Chart(document.getElementById('vendedoresChart'), {
+            const ctx = document.getElementById('vendedoresChart');
+            if (window.vendedoresChartInstance) window.vendedoresChartInstance.destroy();
+
+            window.vendedoresChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: data.map(d => d[0]),
@@ -610,153 +609,14 @@
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    return formatCurrency(context.parsed.x);
-                                }
+                                label: (context) => formatCurrency(context.parsed.x)
                             }
                         }
                     },
                     scales: {
                         x: {
                             ticks: {
-                                callback: function(value) {
-                                    return '
-
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-                minimumFractionDigits: 0
-            }).format(value);
-        }
-
-        function showError(message) {
-            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
-            document.getElementById('errorSection').style.display = 'block';
-        }
-
-        window.onload = async () => {
-            await msalInstance.handleRedirectPromise();
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('userName').textContent = accounts[0].name;
-                await loadData();
-            }
-        };
-    </script>
-</body>
-</html> + (value / 1000000).toFixed(1) + 'M';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-                minimumFractionDigits: 0
-            }).format(value);
-        }
-
-        function showError(message) {
-            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
-            document.getElementById('errorSection').style.display = 'block';
-        }
-
-        window.onload = async () => {
-            await msalInstance.handleRedirectPromise();
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('userName').textContent = accounts[0].name;
-                await loadData();
-            }
-        };
-    </script>
-</body>
-</html> + (value / 1000000).toFixed(1) + 'M';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderVendedoresChart() {
-            const ventasPorVendedor = {};
-            filteredData.forEach(row => {
-                if (row.numFactura !== '' && row.vendedor) {
-                    ventasPorVendedor[row.vendedor] = (ventasPorVendedor[row.vendedor] || 0) + row.total;
-                }
-            });
-
-            // Limitar a top 10 vendedores para evitar gráfica muy larga
-            const data = Object.entries(ventasPorVendedor)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10);
-
-            new Chart(document.getElementById('vendedoresChart'), {
-                type: 'bar',
-                data: {
-                    labels: data.map(d => d[0]),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: data.map(d => d[1]),
-                        backgroundColor: '#10b981'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    indexAxis: 'y',
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return formatCurrency(context.parsed.x);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                callback: function(value) {
-                                    return '
-
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-                minimumFractionDigits: 0
-            }).format(value);
-        }
-
-        function showError(message) {
-            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
-            document.getElementById('errorSection').style.display = 'block';
-        }
-
-        window.onload = async () => {
-            await msalInstance.handleRedirectPromise();
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('userName').textContent = accounts[0].name;
-                await loadData();
-            }
-        };
-    </script>
-</body>
-</html> + (value / 1000000).toFixed(1) + 'M';
-                                }
+                                callback: (value) => '$' + (value / 1000000).toFixed(1) + 'M'
                             }
                         }
                     }
