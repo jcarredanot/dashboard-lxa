@@ -217,6 +217,12 @@
 
             <div class="kpis" id="kpis"></div>
             <div class="charts" id="charts"></div>
+            
+            <div class="table-card">
+                <h3>Ventas por Vendedor - Ranking Completo</h3>
+                <div id="rankingVendedores"></div>
+            </div>
+            
             <div class="table-card">
                 <h3>Top 10 Clientes</h3>
                 <div id="topClientes"></div>
@@ -235,11 +241,11 @@
             auth: {
                 clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
                 authority: 'https://login.microsoftonline.com/45f5b6e6-42e0-4fdd-b61a-df489f75dc8c',
-                redirectUri: window.location.origin
+                redirectUri: window.location.protocol === 'file:' ? 'file:///' : window.location.origin
             },
             cache: {
-                cacheLocation: 'sessionStorage',
-                storeAuthStateInCookie: false
+                cacheLocation: 'localStorage',
+                storeAuthStateInCookie: true
             }
         };
 
@@ -441,7 +447,28 @@
 
             renderTopClientes();
             renderTopProductos();
+            renderRankingVendedores();
             renderCharts();
+        }
+
+        function renderRankingVendedores() {
+            const ventasPorVendedor = {};
+            filteredData.forEach(row => {
+                if (row.numFactura !== '' && row.vendedor) {
+                    ventasPorVendedor[row.vendedor] = (ventasPorVendedor[row.vendedor] || 0) + row.total;
+                }
+            });
+
+            const rankingVendedores = Object.entries(ventasPorVendedor)
+                .map(([nombre, total]) => ({ nombre, total }))
+                .sort((a, b) => b.total - a.total);
+
+            let html = '<table><thead><tr><th>Posición</th><th>Vendedor</th><th style="text-align: right;">Total Ventas</th></tr></thead><tbody>';
+            rankingVendedores.forEach((vendedor, idx) => {
+                html += `<tr><td><strong>${idx + 1}</strong></td><td>${vendedor.nombre}</td><td style="text-align: right;">${formatCurrency(vendedor.total)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('rankingVendedores').innerHTML = html;
         }
 
         function renderTopClientes() {
@@ -546,8 +573,10 @@
                 }
             });
 
+            // Limitar a top 10 vendedores para evitar gráfica muy larga
             const data = Object.entries(ventasPorVendedor)
-                .sort((a, b) => b[1] - a[1]);
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
 
             new Chart(document.getElementById('vendedoresChart'), {
                 type: 'bar',
@@ -561,8 +590,53 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.parsed.x);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                minimumFractionDigits: 0
+            }).format(value);
+        }
+
+        function showError(message) {
+            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            document.getElementById('errorSection').style.display = 'block';
+        }
+
+        window.onload = async () => {
+            await msalInstance.handleRedirectPromise();
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('userName').textContent = accounts[0].name;
+                await loadData();
+            }
+        };
+    </script>
+</body>
+</html> + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
