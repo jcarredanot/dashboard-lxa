@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard LXA - En Tiempo Real</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 { color: #333; font-size: 2.5em; margin-bottom: 10px; }
+        .header p { color: #666; font-size: 1.1em; }
+        .login-section {
+            background: white;
+            padding: 60px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            margin: 100px auto;
+        }
+        .login-section h2 { color: #333; margin-bottom: 20px; }
+        .login-section p { color: #666; margin-bottom: 30px; }
+        .btn {
+            background: #5e72e4;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: #4c63d2; transform: translateY(-2px); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .loading {
+            text-align: center;
+            padding: 100px;
+            background: white;
+            border-radius: 20px;
+            margin: 50px auto;
+            max-width: 500px;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #5e72e4;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filters select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .kpi-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .kpi-card h3 { color: #666; font-size: 0.9em; margin-bottom: 10px; text-transform: uppercase; }
+        .kpi-card .value { color: #333; font-size: 2em; font-weight: bold; }
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .chart-card h3 { color: #333; margin-bottom: 20px; font-size: 1.3em; }
+        .table-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .table-card h3 { color: #333; margin-bottom: 20px; font-size: 1.3em; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        tr:hover { background: #f8f9fa; }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #c33;
+        }
+        .user-info {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .user-info span { color: #333; }
+        .user-info button { 
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection" class="login-section">
+            <h2>🔐 Dashboard LXA</h2>
+            <p>Inicia sesión con tu cuenta de Microsoft para acceder al dashboard en tiempo real</p>
+            <button class="btn" onclick="signIn()">Iniciar Sesión con Microsoft</button>
+        </div>
+
+        <div id="loadingSection" class="loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <h3>Cargando datos desde SharePoint...</h3>
+            <p>Por favor espera un momento</p>
+        </div>
+
+        <div id="dashboardSection" style="display: none;">
+            <div class="user-info">
+                <span>👤 <strong id="userName"></strong></span>
+                <button onclick="signOut()">Cerrar Sesión</button>
+            </div>
+
+            <div class="header">
+                <h1>📊 Dashboard de Ventas LXA</h1>
+                <p>Datos actualizados en tiempo real desde SharePoint</p>
+                <small id="lastUpdate"></small>
+            </div>
+
+            <div class="filters">
+                <label><strong>Año:</strong></label>
+                <select id="yearFilter" onchange="applyFilters()">
+                    <option value="all">Todos los años</option>
+                </select>
+                <label><strong>Mes:</strong></label>
+                <select id="monthFilter" onchange="applyFilters()">
+                    <option value="all">Todos los meses</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+                <button class="btn" onclick="loadData()">🔄 Actualizar Datos</button>
+            </div>
+
+            <div class="kpis" id="kpis"></div>
+            <div class="charts" id="charts"></div>
+            <div class="table-card">
+                <h3>Top 10 Clientes</h3>
+                <div id="topClientes"></div>
+            </div>
+            <div class="table-card">
+                <h3>Top 10 Productos</h3>
+                <div id="topProductos"></div>
+            </div>
+        </div>
+
+        <div id="errorSection" style="display: none;"></div>
+    </div>
+
+    <script>
+        const msalConfig = {
+            auth: {
+                clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
+                authority: 'https://login.microsoftonline.com/45f5b6e6-42e0-4fdd-b61a-df489f75dc8c',
+                redirectUri: window.location.origin
+            },
+            cache: {
+                cacheLocation: 'sessionStorage',
+                storeAuthStateInCookie: false
+            }
+        };
+
+        const loginRequest = {
+            scopes: ['Files.Read', 'Files.Read.All', 'Sites.Read.All', 'User.Read']
+        };
+
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+        let allData = [];
+        let filteredData = [];
+
+        async function signIn() {
+            try {
+                const loginResponse = await msalInstance.loginPopup(loginRequest);
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('userName').textContent = loginResponse.account.name;
+                await loadData();
+            } catch (error) {
+                showError('Error al iniciar sesión: ' + error.message);
+            }
+        }
+
+        function signOut() {
+            msalInstance.logoutPopup();
+        }
+
+        async function getAccessToken() {
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length === 0) {
+                throw new Error('No hay sesión activa');
+            }
+
+            const request = {
+                ...loginRequest,
+                account: accounts[0]
+            };
+
+            const response = await msalInstance.acquireTokenSilent(request);
+            return response.accessToken;
+        }
+
+        async function loadData() {
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('errorSection').style.display = 'none';
+
+            try {
+                const token = await getAccessToken();
+                
+                // Usar el ID del archivo compartido
+                // Decodificar el sharing URL para obtener el Item ID
+                const sharingUrl = 'https://laidealmx-my.sharepoint.com/:x:/g/personal/carlosc_laideal_com_mx/EY8QlfTcVY9Kq3TQk3XcDusB6QsET2u1DfBFDnclSLBhXw';
+                const encodedUrl = 'u!' + btoa(sharingUrl).replace(/=/g, '').replace(/\//g, '_').replace(/\+/g, '-');
+                
+                // Obtener información del archivo compartido
+                const shareResponse = await fetch(
+                    `https://graph.microsoft.com/v1.0/shares/${encodedUrl}/driveItem`,
+                    {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }
+                );
+
+                if (!shareResponse.ok) {
+                    throw new Error(`Error al acceder al archivo compartido: ${shareResponse.status}`);
+                }
+
+                const shareData = await shareResponse.json();
+                
+                // Obtener el contenido del archivo
+                const contentResponse = await fetch(
+                    `https://graph.microsoft.com/v1.0/drives/${shareData.parentReference.driveId}/items/${shareData.id}/content`,
+                    {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }
+                );
+
+                if (!contentResponse.ok) {
+                    throw new Error(`Error al descargar el archivo: ${contentResponse.status}`);
+                }
+
+                const arrayBuffer = await contentResponse.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                
+                const worksheet = workbook.Sheets['LXA'];
+                if (!worksheet) {
+                    throw new Error('No se encontró la hoja "LXA" en el archivo');
+                }
+
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                
+                allData = processData(jsonData);
+                filteredData = allData;
+                
+                updateYearFilter();
+                renderDashboard();
+                
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('dashboardSection').style.display = 'block';
+                document.getElementById('lastUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-MX')}`;
+                
+            } catch (error) {
+                console.error('Error completo:', error);
+                showError('Error al cargar datos: ' + error.message);
+                document.getElementById('loadingSection').style.display = 'none';
+            }
+        }
+
+        function processData(data) {
+            return data.map(row => {
+                // Parsear fecha - puede venir como texto "dd/mm/yyyy" o como número de Excel
+                let fecha = null;
+                const salidaValue = row['Salida'];
+                
+                if (typeof salidaValue === 'string' && salidaValue.includes('/')) {
+                    // Formato texto: "14/10/2025"
+                    const fechaParts = salidaValue.split('/');
+                    if (fechaParts.length === 3) {
+                        fecha = new Date(fechaParts[2], fechaParts[1] - 1, fechaParts[0]);
+                    }
+                } else if (typeof salidaValue === 'number') {
+                    // Formato número de Excel (días desde 1900-01-01)
+                    const excelEpoch = new Date(1899, 11, 30);
+                    fecha = new Date(excelEpoch.getTime() + salidaValue * 86400000);
+                } else if (salidaValue instanceof Date) {
+                    // Ya es un objeto Date
+                    fecha = salidaValue;
+                }
+
+                const parsePrice = (str) => {
+                    if (!str) return 0;
+                    return parseFloat(str.toString().replace(/[$,]/g, '')) || 0;
+                };
+
+                const normalizarCliente = (cliente) => {
+                    if (!cliente) return cliente;
+                    if (cliente.toLowerCase().includes('coppel')) return 'Coppel';
+                    return cliente;
+                };
+
+                return {
+                    año: fecha ? fecha.getFullYear() : null,
+                    mes: fecha ? fecha.getMonth() + 1 : null,
+                    fecha: fecha,
+                    numFactura: row['#'] || '',
+                    cliente: normalizarCliente(row['Cliente']),
+                    producto: row['Producto(s)'],
+                    precio: parsePrice(row['Precio']),
+                    cantidad: parseInt(row['Cantidad']) || 0,
+                    subtotal2: parsePrice(row['Subtotal 2']),
+                    total: parsePrice(row['Total']),
+                    vendedor: row['Vendedor'],
+                    estado: row['Estado']
+                };
+            }).filter(row => row.fecha !== null);
+        }
+
+        function updateYearFilter() {
+            const years = [...new Set(allData.map(row => row.año))].sort();
+            const yearSelect = document.getElementById('yearFilter');
+            yearSelect.innerHTML = '<option value="all">Todos los años</option>';
+            years.forEach(year => {
+                yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+            });
+        }
+
+        function applyFilters() {
+            const selectedYear = document.getElementById('yearFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+
+            filteredData = allData.filter(row => {
+                if (selectedYear !== 'all' && row.año !== parseInt(selectedYear)) return false;
+                if (selectedMonth !== 'all' && row.mes !== parseInt(selectedMonth)) return false;
+                return true;
+            });
+
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const ventasConFactura = filteredData.filter(row => row.numFactura !== '');
+            const totalVentas = ventasConFactura.reduce((sum, row) => sum + row.total, 0);
+            const numFacturas = ventasConFactura.length;
+            const ticketPromedio = numFacturas > 0 ? totalVentas / numFacturas : 0;
+
+            document.getElementById('kpis').innerHTML = `
+                <div class="kpi-card">
+                    <h3>Ventas Totales</h3>
+                    <div class="value">${formatCurrency(totalVentas)}</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Facturas</h3>
+                    <div class="value">${numFacturas.toLocaleString()}</div>
+                </div>
+                <div class="kpi-card">
+                    <h3>Ticket Promedio</h3>
+                    <div class="value">${formatCurrency(ticketPromedio)}</div>
+                </div>
+            `;
+
+            renderTopClientes();
+            renderTopProductos();
+            renderCharts();
+        }
+
+        function renderTopClientes() {
+            const clienteStats = {};
+            filteredData.forEach(row => {
+                if (row.numFactura !== '') {
+                    clienteStats[row.cliente] = (clienteStats[row.cliente] || 0) + row.total;
+                }
+            });
+
+            const topClientes = Object.entries(clienteStats)
+                .map(([nombre, total]) => ({ nombre, total }))
+                .sort((a, b) => b.total - a.total)
+                .slice(0, 10);
+
+            let html = '<table><thead><tr><th>Cliente</th><th style="text-align: right;">Total</th></tr></thead><tbody>';
+            topClientes.forEach(cliente => {
+                html += `<tr><td>${cliente.nombre}</td><td style="text-align: right;">${formatCurrency(cliente.total)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('topClientes').innerHTML = html;
+        }
+
+        function renderTopProductos() {
+            const productoStats = {};
+            filteredData.forEach(row => {
+                if (!productoStats[row.producto]) {
+                    productoStats[row.producto] = { cantidad: 0, valor: 0 };
+                }
+                productoStats[row.producto].cantidad += row.cantidad;
+                productoStats[row.producto].valor += row.subtotal2;
+            });
+
+            const topProductos = Object.entries(productoStats)
+                .map(([nombre, stats]) => ({ nombre, ...stats }))
+                .sort((a, b) => b.valor - a.valor)
+                .slice(0, 10);
+
+            let html = '<table><thead><tr><th>Producto</th><th style="text-align: right;">Unidades</th><th style="text-align: right;">Valor</th></tr></thead><tbody>';
+            topProductos.forEach(prod => {
+                html += `<tr><td>${prod.nombre}</td><td style="text-align: right;">${prod.cantidad}</td><td style="text-align: right;">${formatCurrency(prod.valor)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('topProductos').innerHTML = html;
+        }
+
+        function renderCharts() {
+            document.getElementById('charts').innerHTML = `
+                <div class="chart-card">
+                    <h3>Ventas Mensuales</h3>
+                    <canvas id="ventasChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Ventas por Vendedor</h3>
+                    <canvas id="vendedoresChart"></canvas>
+                </div>
+            `;
+
+            renderVentasChart();
+            renderVendedoresChart();
+        }
+
+        function renderVentasChart() {
+            const ventasPorMes = {};
+            filteredData.forEach(row => {
+                if (row.numFactura !== '') {
+                    const key = `${row.año}-${String(row.mes).padStart(2, '0')}`;
+                    ventasPorMes[key] = (ventasPorMes[key] || 0) + row.total;
+                }
+            });
+
+            const data = Object.entries(ventasPorMes)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .slice(-12);
+
+            new Chart(document.getElementById('ventasChart'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d[0]),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: data.map(d => d[1]),
+                        borderColor: '#5e72e4',
+                        backgroundColor: 'rgba(94, 114, 228, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderVendedoresChart() {
+            const ventasPorVendedor = {};
+            filteredData.forEach(row => {
+                if (row.numFactura !== '' && row.vendedor) {
+                    ventasPorVendedor[row.vendedor] = (ventasPorVendedor[row.vendedor] || 0) + row.total;
+                }
+            });
+
+            const data = Object.entries(ventasPorVendedor)
+                .sort((a, b) => b[1] - a[1]);
+
+            new Chart(document.getElementById('vendedoresChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d[0]),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: data.map(d => d[1]),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                minimumFractionDigits: 0
+            }).format(value);
+        }
+
+        function showError(message) {
+            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            document.getElementById('errorSection').style.display = 'block';
+        }
+
+        window.onload = async () => {
+            await msalInstance.handleRedirectPromise();
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('userName').textContent = accounts[0].name;
+                await loadData();
+            }
+        };
+    </script>
+</body>
+</html>
