@@ -112,8 +112,10 @@
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            height: 400px;
         }
         .chart-card h3 { color: #333; margin-bottom: 20px; font-size: 1.3em; }
+        .chart-card canvas { max-height: 320px !important; }
         .table-card {
             background: white;
             padding: 25px;
@@ -559,8 +561,129 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '
+
+        function renderVendedoresChart() {
+            const ventasPorVendedor = {};
+            filteredData.forEach(row => {
+                if (row.numFactura !== '' && row.vendedor) {
+                    ventasPorVendedor[row.vendedor] = (ventasPorVendedor[row.vendedor] || 0) + row.total;
+                }
+            });
+
+            // Limitar a top 10 vendedores para evitar gráfica muy larga
+            const data = Object.entries(ventasPorVendedor)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            new Chart(document.getElementById('vendedoresChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d[0]),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: data.map(d => d[1]),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'y',
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.parsed.x);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                minimumFractionDigits: 0
+            }).format(value);
+        }
+
+        function showError(message) {
+            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            document.getElementById('errorSection').style.display = 'block';
+        }
+
+        window.onload = async () => {
+            await msalInstance.handleRedirectPromise();
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('userName').textContent = accounts[0].name;
+                await loadData();
+            }
+        };
+    </script>
+</body>
+</html> + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+                minimumFractionDigits: 0
+            }).format(value);
+        }
+
+        function showError(message) {
+            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            document.getElementById('errorSection').style.display = 'block';
+        }
+
+        window.onload = async () => {
+            await msalInstance.handleRedirectPromise();
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('userName').textContent = accounts[0].name;
+                await loadData();
+            }
+        };
+    </script>
+</body>
+</html> + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
