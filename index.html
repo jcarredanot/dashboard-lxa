@@ -159,7 +159,7 @@
     },
     cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
   }
-  const msalInstance = new msal.PublicClientApplication(msalConfig)
+  let msalInstance;
   const GRAPH_SCOPES_READ = ['User.Read','Files.Read'] // solo lectura
 
   // ========================
@@ -226,14 +226,24 @@
 
   // ========================
   // 5) Auth
-  // ========================
+  // Inicializa MSAL cuando el DOM y los scripts diferidos (msal-browser) ya cargaron
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      msalInstance = new msal.PublicClientApplication(msalConfig);
+      msalInstance.handleRedirectPromise().then(resp=>{ if(resp){ afterLogin(resp.account) } });
+    } catch (e) {
+      console.error('Error inicializando MSAL:', e);
+    }
+  });
+
   async function login(){
     try{
+      if(!msalInstance) throw new Error('MSAL no inicializado aún');
       const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES_READ })
       afterLogin(resp.account)
     }catch(e){ alert('Error de inicio de sesión: '+e.message) }
   }
-  function logout(){ msalInstance.logoutPopup() }
+  function logout(){ if(msalInstance) msalInstance.logoutPopup() }
   function afterLogin(account){
     byId('loginCard').classList.add('hidden')
     byId('app').classList.remove('hidden')
@@ -241,9 +251,11 @@
     loadData()
   }
 
-  msalInstance.handleRedirectPromise().then(resp=>{ if(resp){ afterLogin(resp.account) } })
-
   async function getToken(){
+    const [acct] = msalInstance.getAllAccounts(); if(!acct) throw new Error('No hay sesión activa')
+    const r = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES_READ, account: acct })
+    return r.accessToken
+  }(){
     const [acct] = msalInstance.getAllAccounts(); if(!acct) throw new Error('No hay sesión activa')
     const r = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES_READ, account: acct })
     return r.accessToken
@@ -447,7 +459,7 @@
 
       ${a.clientesInactivos.length? `<div class="warn" style="margin-top:16px"><b>⚠ Clientes inactivos (${CONFIG.diasClienteInactivo}+ días):</b><br>${a.clientesInactivos.slice(0,5).map(c=>`• ${c.nombre} — ${c.dias} días — ${fmtCurrency(c.total)}`).join('<br>')}</div>` : ''}
 
-      <div class=\"grid cols-2\" style=\"margin-top:16px\">$1
+      <div class=\"grid cols-2\" style=\"margin-top:16px\">
         <div class=\"card\"><h3>Top 5 Prod. por Utilidad</h3><canvas id=\"chartTopUtilidad\"></canvas></div>
       </div>
         <div class="card"><h3>Top 5 Productos</h3><canvas id="chartTopProductos"></canvas></div>
