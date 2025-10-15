@@ -124,17 +124,6 @@
         .kpi-card .trend { font-size: 0.9em; margin-top: 8px; }
         .kpi-card .trend.up { color: #10b981; }
         .kpi-card .trend.down { color: #ef4444; }
-        .semaforo {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-        }
-        .semaforo.verde { background: #10b981; box-shadow: 0 0 10px #10b981; }
-        .semaforo.amarillo { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
-        .semaforo.rojo { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
         .charts {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
@@ -150,70 +139,6 @@
         }
         .chart-card h3 { color: #333; margin-bottom: 20px; font-size: 1.3em; }
         .chart-container { height: 350px; position: relative; }
-        .table-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .table-card h3 { color: #333; margin-bottom: 20px; font-size: 1.3em; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-        }
-        tr:hover { background: #f8f9fa; }
-        .alert-card {
-            background: #fef2f2;
-            border-left: 4px solid #ef4444;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .alert-card h3 { color: #991b1b; margin-bottom: 10px; }
-        .alert-item { color: #7f1d1d; margin: 8px 0; }
-        .success-card {
-            background: #f0fdf4;
-            border-left: 4px solid #10b981;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .success-card h3 { color: #065f46; margin-bottom: 10px; }
-        .success-item { color: #064e3b; margin: 8px 0; }
-        .info-card {
-            background: #eff6ff;
-            border-left: 4px solid #3b82f6;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .info-card h3 { color: #1e40af; margin-bottom: 10px; }
-        .info-item { color: #1e3a8a; margin: 8px 0; }
-        .badge { 
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        .badge.A { background: #dcfce7; color: #166534; }
-        .badge.B { background: #fef3c7; color: #92400e; }
-        .badge.C { background: #fee2e2; color: #991b1b; }
-        .badge.VIP { background: #ddd6fe; color: #5b21b6; }
-        .badge.Leal { background: #dcfce7; color: #166534; }
-        .badge.Ocasional { background: #fef3c7; color: #92400e; }
-        .badge.Riesgo { background: #fee2e2; color: #991b1b; }
         .error {
             background: #fee;
             color: #c33;
@@ -231,7 +156,6 @@
             justify-content: space-between;
             align-items: center;
         }
-        .user-info span { color: #333; }
         .user-info button { 
             background: #dc3545;
             color: white;
@@ -240,41 +164,6 @@
             border-radius: 6px;
             cursor: pointer;
         }
-        .scorecard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .scorecard-item {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
-            border-left: 4px solid #e0e0e0;
-        }
-        .scorecard-item.verde { border-left-color: #10b981; }
-        .scorecard-item.amarillo { border-left-color: #f59e0b; }
-        .scorecard-item.rojo { border-left-color: #ef4444; }
-        .scorecard-item h4 { font-size: 0.85em; color: #666; margin-bottom: 8px; }
-        .scorecard-item .score-value { font-size: 1.8em; font-weight: bold; color: #333; }
-        .scorecard-item .score-detail { font-size: 0.85em; color: #666; margin-top: 5px; }
-        .projection-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-        }
-        .projection-card h3 { margin-bottom: 20px; font-size: 1.5em; }
-        .projection-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-        .projection-item h4 { font-size: 0.9em; opacity: 0.9; margin-bottom: 5px; }
-        .projection-item .proj-value { font-size: 2em; font-weight: bold; }
-        .projection-item .proj-detail { font-size: 0.9em; opacity: 0.8; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -292,13 +181,13 @@
 
         <div id="dashboardSection" style="display: none;">
             <div class="user-info">
-                <span>👤 <strong id="userName"></strong></span>
+                <span id="userName"></span>
                 <button onclick="signOut()">Cerrar Sesión</button>
             </div>
 
             <div class="header">
-                <h1>📊 Dashboard CEO - LXA</h1>
-                <p>Toma de decisiones basada en datos en tiempo real</p>
+                <h1>Dashboard CEO - LXA</h1>
+                <p>Toma de decisiones basada en datos</p>
                 <small id="lastUpdate"></small>
             </div>
 
@@ -323,24 +212,18 @@
                     <option value="11">Noviembre</option>
                     <option value="12">Diciembre</option>
                 </select>
-                <button class="btn btn-small" onclick="loadData()">🔄 Actualizar</button>
+                <button class="btn btn-small" onclick="loadData()">Actualizar</button>
             </div>
 
             <div class="tabs">
-                <div class="tab active" onclick="switchTab('scorecard')">🎯 CEO Scorecard</div>
-                <div class="tab" onclick="switchTab('ventas')">📈 Ventas & Proyección</div>
-                <div class="tab" onclick="switchTab('rentabilidad')">💰 Rentabilidad</div>
-                <div class="tab" onclick="switchTab('clientes')">👥 Inteligencia Clientes</div>
-                <div class="tab" onclick="switchTab('productos')">📦 Productos</div>
-                <div class="tab" onclick="switchTab('geografia')">🗺️ Geografía</div>
+                <div class="tab active" onclick="switchTab('scorecard')">CEO Scorecard</div>
+                <div class="tab" onclick="switchTab('ventas')">Ventas</div>
+                <div class="tab" onclick="switchTab('clientes')">Clientes</div>
             </div>
 
             <div id="tab-scorecard" class="tab-content active"></div>
             <div id="tab-ventas" class="tab-content"></div>
-            <div id="tab-rentabilidad" class="tab-content"></div>
             <div id="tab-clientes" class="tab-content"></div>
-            <div id="tab-productos" class="tab-content"></div>
-            <div id="tab-geografia" class="tab-content"></div>
         </div>
 
         <div id="errorSection" style="display: none;"></div>
@@ -365,27 +248,16 @@
 
         const msalInstance = new msal.PublicClientApplication(msalConfig);
         
-        // Configuración CEO
-        const CEO_CONFIG = {
-            metaCrecimiento2025: 0.15, // 15% crecimiento vs 2024
-            margenObjetivo: 0.35, // 35% margen objetivo
-            diasClienteInactivo: 60,
-            umbralDeclineProducto: -0.20, // -20% es alerta
-            topClientesMonitorear: 10
-        };
-
         let allData = [];
-        let costosProductos = {};
         let filteredData = [];
         let analytics = {};
-        let charts = {};
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             
             event.target.classList.add('active');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
         }
 
         async function signIn() {
@@ -406,7 +278,7 @@
         async function getAccessToken() {
             const accounts = msalInstance.getAllAccounts();
             if (accounts.length === 0) throw new Error('No hay sesión activa');
-            const request = { ...loginRequest, account: accounts[0] };
+            const request = Object.assign({}, loginRequest, { account: accounts[0] });
             const response = await msalInstance.acquireTokenSilent(request);
             return response.accessToken;
         }
@@ -421,36 +293,25 @@
                 const encodedUrl = 'u!' + btoa(sharingUrl).replace(/=/g, '').replace(/\//g, '_').replace(/\+/g, '-');
                 
                 const shareResponse = await fetch(
-                    `https://graph.microsoft.com/v1.0/shares/${encodedUrl}/driveItem`,
-                    { headers: { 'Authorization': `Bearer ${token}` } }
+                    'https://graph.microsoft.com/v1.0/shares/' + encodedUrl + '/driveItem',
+                    { headers: { 'Authorization': 'Bearer ' + token } }
                 );
 
-                if (!shareResponse.ok) throw new Error(`Error: ${shareResponse.status}`);
+                if (!shareResponse.ok) throw new Error('Error: ' + shareResponse.status);
                 const shareData = await shareResponse.json();
                 
                 const contentResponse = await fetch(
-                    `https://graph.microsoft.com/v1.0/drives/${shareData.parentReference.driveId}/items/${shareData.id}/content`,
-                    { headers: { 'Authorization': `Bearer ${token}` } }
+                    'https://graph.microsoft.com/v1.0/drives/' + shareData.parentReference.driveId + '/items/' + shareData.id + '/content',
+                    { headers: { 'Authorization': 'Bearer ' + token } }
                 );
 
-                if (!contentResponse.ok) throw new Error(`Error: ${contentResponse.status}`);
+                if (!contentResponse.ok) throw new Error('Error: ' + contentResponse.status);
 
                 const arrayBuffer = await contentResponse.arrayBuffer();
                 const workbook = XLSX.read(arrayBuffer, { type: 'array' });
                 
                 const worksheet = workbook.Sheets['LXA'];
-                if (!worksheet) throw new Error('No se encontró la hoja "LXA"');
-
-                // Cargar costos de productos
-                const listaPreciosSheet = workbook.Sheets['Lista de precios 2025'];
-                if (listaPreciosSheet) {
-                    const listaPreciosData = XLSX.utils.sheet_to_json(listaPreciosSheet);
-                    listaPreciosData.forEach(row => {
-                        if (row['CODIGOS'] && row['COSTO DINAMICO ALMEXA']) {
-                            costosProductos[row['CODIGOS']] = parseFloat(row['COSTO DINAMICO ALMEXA']) || 0;
-                        }
-                    });
-                }
+                if (!worksheet) throw new Error('No se encontró la hoja LXA');
 
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
                 allData = processData(jsonData);
@@ -462,7 +323,7 @@
                 
                 document.getElementById('loadingSection').style.display = 'none';
                 document.getElementById('dashboardSection').style.display = 'block';
-                document.getElementById('lastUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-MX')}`;
+                document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleString('es-MX');
                 
             } catch (error) {
                 console.error('Error:', error);
@@ -472,66 +333,47 @@
         }
 
         function processData(data) {
-            return data.map(row => {
+            return data.map(function(row) {
                 let fecha = null;
                 const salidaValue = row['Salida'];
                 
                 if (typeof salidaValue === 'string' && salidaValue.includes('/')) {
                     const parts = salidaValue.split('/');
                     if (parts.length === 3) fecha = new Date(parts[2], parts[1] - 1, parts[0]);
-                } else if (typeof salidaValue === 'number') {
-                    fecha = new Date(new Date(1899, 11, 30).getTime() + salidaValue * 86400000);
-                } else if (salidaValue instanceof Date) {
-                    fecha = salidaValue;
                 }
 
-                const parsePrice = (str) => {
+                const parsePrice = function(str) {
                     if (!str) return 0;
                     return parseFloat(str.toString().replace(/[$,]/g, '')) || 0;
                 };
-
-                const normalizarCliente = (cliente) => {
-                    if (!cliente) return cliente;
-                    if (cliente.toLowerCase().includes('coppel')) return 'Coppel';
-                    return cliente;
-                };
-
-                const codigo = row['Codigo'];
-                const precio = parsePrice(row['Precio']);
-                const cantidad = parseInt(row['Cantidad']) || 0;
-                const costo = costosProductos[codigo] || 0;
-                const costoTotal = costo * cantidad;
-                const subtotal = parsePrice(row['Subtotal 2']);
-                const margen = subtotal > 0 ? (subtotal - costoTotal) / subtotal : 0;
 
                 return {
                     año: fecha ? fecha.getFullYear() : null,
                     mes: fecha ? fecha.getMonth() + 1 : null,
                     fecha: fecha,
-                    diaSemana: fecha ? fecha.getDay() : null,
                     numFactura: row['#'] || '',
-                    cliente: normalizarCliente(row['Cliente']),
-                    codigo: codigo,
+                    cliente: row['Cliente'],
                     producto: row['Producto(s)'],
-                    precio: precio,
-                    cantidad: cantidad,
-                    subtotal2: subtotal,
+                    cantidad: parseInt(row['Cantidad']) || 0,
+                    subtotal2: parsePrice(row['Subtotal 2']),
                     total: parsePrice(row['Total']),
                     vendedor: row['Vendedor'],
-                    estado: row['Estado'],
-                    costo: costo,
-                    costoTotal: costoTotal,
-                    margen: margen
+                    estado: row['Estado']
                 };
-            }).filter(row => row.fecha !== null);
+            }).filter(function(row) { return row.fecha !== null; });
         }
 
         function updateYearFilter() {
-            const years = [...new Set(allData.map(row => row.año))].sort();
+            const years = [];
+            allData.forEach(function(row) {
+                if (years.indexOf(row.año) === -1) years.push(row.año);
+            });
+            years.sort();
+            
             const yearSelect = document.getElementById('yearFilter');
             yearSelect.innerHTML = '<option value="all">Todos</option>';
-            years.forEach(year => {
-                yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+            years.forEach(function(year) {
+                yearSelect.innerHTML += '<option value="' + year + '">' + year + '</option>';
             });
         }
 
@@ -539,7 +381,7 @@
             const selectedYear = document.getElementById('yearFilter').value;
             const selectedMonth = document.getElementById('monthFilter').value;
 
-            filteredData = allData.filter(row => {
+            filteredData = allData.filter(function(row) {
                 if (selectedYear !== 'all' && row.año !== parseInt(selectedYear)) return false;
                 if (selectedMonth !== 'all' && row.mes !== parseInt(selectedMonth)) return false;
                 return true;
@@ -550,2159 +392,146 @@
         }
 
         function calculateAnalytics() {
-            const ventasConFactura = filteredData.filter(row => row.numFactura !== '');
-            const totalVentas = ventasConFactura.reduce((sum, row) => sum + row.total, 0);
-            const totalCostos = ventasConFactura.reduce((sum, row) => sum + row.costoTotal, 0);
-            const margenGlobal = totalVentas > 0 ? (totalVentas - totalCostos) / totalVentas : 0;
+            const ventasConFactura = filteredData.filter(function(row) { return row.numFactura !== ''; });
+            const totalVentas = ventasConFactura.reduce(function(sum, row) { return sum + row.total; }, 0);
             const numFacturas = ventasConFactura.length;
             
-            const metasCrecimiento = calculateMetasCrecimiento();
-            const clientAnalysis = calculateClientAnalysis();
-            const productAnalysis = calculateProductAnalysis();
-            const geografiaAnalysis = calculateGeografiaAnalysis();
-            
             analytics = {
-                totalVentas,
-                totalCostos,
-                margenGlobal,
-                numFacturas,
-                ticketPromedio: numFacturas > 0 ? totalVentas / numFacturas : 0,
-                ...metasCrecimiento,
-                ...clientAnalysis,
-                ...productAnalysis,
-                ...geografiaAnalysis
+                totalVentas: totalVentas,
+                numFacturas: numFacturas,
+                ticketPromedio: numFacturas > 0 ? totalVentas / numFacturas : 0
             };
-            
-            // Calcular RFM después de tener clientesOrdenados
-            const rfmAnalysis = calculateRFMAnalysis();
-            analytics = { ...analytics, ...rfmAnalysis };
-            
-            // Calcular proyección después de tener la meta
-            const proyeccion = calculateProyeccion();
-            analytics = { ...analytics, ...proyeccion };
+
+            calculateMetasCrecimiento();
+            calculateClientAnalysis();
         }
 
         function calculateMetasCrecimiento() {
-            const now = new Date();
-            const añoActual = now.getFullYear();
-            const mesActual = now.getMonth() + 1;
+            const añoActual = new Date().getFullYear();
 
-            // Ventas 2024 completo
-            const ventas2024 = allData.filter(r => r.año === 2024 && r.numFactura !== '')
-                .reduce((sum, r) => sum + r.total, 0);
+            const ventas2024 = allData.filter(function(r) { 
+                return r.año === 2024 && r.numFactura !== ''; 
+            }).reduce(function(sum, r) { return sum + r.total; }, 0);
             
-            // Meta 2025 = 2024 * 1.15
-            const meta2025 = ventas2024 * (1 + CEO_CONFIG.metaCrecimiento2025);
+            const meta2025 = ventas2024 * 1.15;
             
-            // Ventas 2025 hasta ahora
-            const ventas2025 = allData.filter(r => r.año === 2025 && r.numFactura !== '')
-                .reduce((sum, r) => sum + r.total, 0);
+            const ventas2025 = allData.filter(function(r) { 
+                return r.año === 2025 && r.numFactura !== ''; 
+            }).reduce(function(sum, r) { return sum + r.total; }, 0);
 
-            // Ventas mes actual
-            const ventasMesActual = allData.filter(r => r.año === añoActual && r.mes === mesActual && r.numFactura !== '')
-                .reduce((sum, r) => sum + r.total, 0);
-            
-            // Ventas mes anterior
-            const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
-            const añoMesAnterior = mesActual === 1 ? añoActual - 1 : añoActual;
-            const ventasMesAnterior = allData.filter(r => r.año === añoMesAnterior && r.mes === mesAnterior && r.numFactura !== '')
-                .reduce((sum, r) => sum + r.total, 0);
-            
-            const crecimientoMensual = ventasMesAnterior > 0 
-                ? ((ventasMesActual - ventasMesAnterior) / ventasMesAnterior) * 100 
-                : 0;
+            const avanceVsMeta = meta2025 > 0 ? (ventas2025 / meta2025) * 100 : 0;
+            const crecimientoAnual = ventas2024 > 0 ? ((ventas2025 - ventas2024) / ventas2024) * 100 : 0;
 
-            const crecimientoAnual = ventas2024 > 0 
-                ? ((ventas2025 - ventas2024) / ventas2024) * 100 
-                : 0;
-
-            const avanceVsMeta = (ventas2025 / meta2025) * 100;
-
-            return { 
-                ventas2024,
-                meta2025,
-                ventas2025,
-                avanceVsMeta,
-                crecimientoMensual, 
-                crecimientoAnual,
-                ventasMesActual,
-                ventasMesAnterior
-            };
-        }
-
-        function calculateProyeccion() {
-            const now = new Date();
-            const añoActual = now.getFullYear();
-            const mesActual = now.getMonth() + 1;
-            const diaActual = now.getDate();
-
-            // Ventas del mes hasta hoy
-            const ventasMesHastaHoy = allData.filter(r => 
-                r.año === añoActual && r.mes === mesActual && r.numFactura !== ''
-            ).reduce((sum, r) => sum + r.total, 0);
-
-            // Días transcurridos y total del mes
-            const diasDelMes = new Date(añoActual, mesActual, 0).getDate();
-            const diasRestantes = diasDelMes - diaActual;
-            
-            // Promedio diario y proyección
-            const promedioDiario = ventasMesHastaHoy / diaActual;
-            const proyeccionMes = promedioDiario * diasDelMes;
-
-            // Meta mensual (meta anual / 12)
-            const metaMensual = (analytics.meta2025 || 0) / 12;
-            const gapToGoal = metaMensual - proyeccionMes;
-            const ventasNecesariasDiarias = diasRestantes > 0 ? gapToGoal / diasRestantes : 0;
-
-            return {
-                ventasMesHastaHoy,
-                proyeccionMes,
-                metaMensual,
-                gapToGoal,
-                diasRestantes,
-                ventasNecesariasDiarias,
-                promedioDiario,
-                probabilidadCumplimiento: metaMensual > 0 ? (proyeccionMes / metaMensual) * 100 : 0
-            };
+            analytics.ventas2024 = ventas2024;
+            analytics.meta2025 = meta2025;
+            analytics.ventas2025 = ventas2025;
+            analytics.avanceVsMeta = avanceVsMeta;
+            analytics.crecimientoAnual = crecimientoAnual;
         }
 
         function calculateClientAnalysis() {
             const clienteStats = {};
             let totalVentasClientes = 0;
 
-            filteredData.forEach(row => {
+            filteredData.forEach(function(row) {
                 if (row.numFactura !== '') {
                     if (!clienteStats[row.cliente]) {
-                        clienteStats[row.cliente] = { 
-                            total: 0, 
-                            totalCosto: 0,
-                            ultimaCompra: row.fecha, 
-                            compras: [],
-                            facturas: new Set()
-                        };
+                        clienteStats[row.cliente] = { total: 0, ultimaCompra: row.fecha };
                     }
                     clienteStats[row.cliente].total += row.total;
-                    clienteStats[row.cliente].totalCosto += row.costoTotal;
-                    clienteStats[row.cliente].facturas.add(row.numFactura);
                     if (row.fecha > clienteStats[row.cliente].ultimaCompra) {
                         clienteStats[row.cliente].ultimaCompra = row.fecha;
-                    }
-                    if (row.numFactura !== clienteStats[row.cliente].ultimaFactura) {
-                        clienteStats[row.cliente].compras.push(row.fecha);
-                        clienteStats[row.cliente].ultimaFactura = row.numFactura;
                     }
                     totalVentasClientes += row.total;
                 }
             });
 
-            const clientesOrdenados = Object.entries(clienteStats)
-                .map(([nombre, data]) => {
-                    const margenCliente = data.total > 0 ? (data.total - data.totalCosto) / data.total : 0;
-                    const frecuencia = data.compras.length;
-                    const diasDesdeUltimaCompra = Math.floor((new Date() - data.ultimaCompra) / (1000 * 60 * 60 * 24));
-                    
-                    return { 
-                        nombre, 
-                        ...data,
-                        margenCliente,
-                        frecuencia,
-                        diasDesdeUltimaCompra
-                    };
-                })
-                .sort((a, b) => b.total - a.total);
-
-            let acumulado = 0;
-            let clientes80 = 0;
-            clientesOrdenados.forEach(c => {
-                acumulado += c.total;
-                if (acumulado <= totalVentasClientes * 0.8) clientes80++;
-            });
-
-            const pct80_20 = clientesOrdenados.length > 0 ? (clientes80 / clientesOrdenados.length) * 100 : 0;
-
-            const clientesInactivos = clientesOrdenados.filter(c => c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo);
-            const clientesVIP = clientesOrdenados.slice(0, CEO_CONFIG.topClientesMonitorear);
-            const clientesVIPEnRiesgo = clientesVIP.filter(c => c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo);
-
-            return { 
-                clientesOrdenados, 
-                pct80_20, 
-                clientesInactivos, 
-                clientes80,
-                clientesVIP,
-                clientesVIPEnRiesgo
-            };
-        }
-
-        function calculateRFMAnalysis() {
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                return { rfmData: [] };
+            const clientesOrdenados = [];
+            for (const nombre in clienteStats) {
+                clientesOrdenados.push({
+                    nombre: nombre,
+                    total: clienteStats[nombre].total,
+                    ultimaCompra: clienteStats[nombre].ultimaCompra
+                });
             }
-            
-            const now = new Date();
-            const rfmData = analytics.clientesOrdenados.map(c => {
-                const recency = c.diasDesdeUltimaCompra;
-                const frequency = c.frecuencia;
-                const monetary = c.total;
+            clientesOrdenados.sort(function(a, b) { return b.total - a.total; });
 
-                let segmento = 'Ocasional';
-                if (recency <= 30 && frequency >= 5 && monetary > analytics.totalVentas / analytics.clientesOrdenados.length * 2) {
-                    segmento = 'VIP';
-                } else if (recency <= 60 && frequency >= 3) {
-                    segmento = 'Leal';
-                } else if (recency > 90) {
-                    segmento = 'Riesgo';
-                }
-
-                return { ...c, segmento };
-            });
-
-            return { rfmData };
-        }
-
-        function calculateProductAnalysis() {
-            const productoStats = {};
-            let totalVentasProductos = 0;
-
-            filteredData.forEach(row => {
-                if (!productoStats[row.producto]) {
-                    productoStats[row.producto] = { 
-                        cantidad: 0, 
-                        valor: 0,
-                        costoTotal: 0,
-                        codigo: row.codigo
-                    };
-                }
-                productoStats[row.producto].cantidad += row.cantidad;
-                productoStats[row.producto].valor += row.subtotal2;
-                productoStats[row.producto].costoTotal += row.costoTotal;
-                totalVentasProductos += row.subtotal2;
-            });
-
-            const productosOrdenados = Object.entries(productoStats)
-                .map(([nombre, stats]) => {
-                    const margen = stats.valor > 0 ? (stats.valor - stats.costoTotal) / stats.valor : 0;
-                    return { nombre, ...stats, margen };
-                })
-                .sort((a, b) => b.valor - a.valor);
-
-            let acumulado = 0;
-            const productosConCategoria = productosOrdenados.map(p => {
-                acumulado += p.valor;
-                const pctAcumulado = (acumulado / totalVentasProductos) * 100;
-                let categoria = 'C';
-                if (pctAcumulado <= 80) categoria = 'A';
-                else if (pctAcumulado <= 95) categoria = 'B';
-                return { ...p, categoria, pctAcumulado };
-            });
-
-            const productosBajoMargen = productosConCategoria.filter(p => p.margen < CEO_CONFIG.margenObjetivo);
-
-            return { productosConCategoria, productosBajoMargen };
-        }
-
-        function calculateGeografiaAnalysis() {
-            const estadoStats = {};
-            const now = new Date();
-            const añoActual = now.getFullYear();
-
-            allData.forEach(row => {
-                if (row.numFactura !== '' && row.estado) {
-                    if (!estadoStats[row.estado]) {
-                        estadoStats[row.estado] = { actual: 0, anterior: 0 };
-                    }
-                    if (row.año === añoActual) {
-                        estadoStats[row.estado].actual += row.total;
-                    } else if (row.año === añoActual - 1) {
-                        estadoStats[row.estado].anterior += row.total;
-                    }
-                }
-            });
-
-            const estadosConCrecimiento = Object.entries(estadoStats)
-                .map(([estado, data]) => ({
-                    estado,
-                    ventas: data.actual,
-                    crecimiento: data.anterior > 0 ? ((data.actual - data.anterior) / data.anterior) * 100 : 0
-                }))
-                .sort((a, b) => b.crecimiento - a.crecimiento);
-
-            return { estadosConCrecimiento };
+            analytics.clientesOrdenados = clientesOrdenados;
+            analytics.totalClientes = clientesOrdenados.length;
         }
 
         function renderAllTabs() {
             renderTabScorecard();
             renderTabVentas();
-            renderTabRentabilidad();
             renderTabClientes();
-            renderTabProductos();
-            renderTabGeografia();
         }
 
         function formatCurrency(value) {
             return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
         }
 
-        function getSemaforoClass(actual, objetivo, invertir = false) {
-            const ratio = actual / objetivo;
-            if (invertir) {
-                if (ratio <= 0.85) return 'verde';
-                if (ratio <= 1) return 'amarillo';
-                return 'rojo';
-            } else {
-                if (ratio >= 0.95) return 'verde';
-                if (ratio >= 0.85) return 'amarillo';
-                return 'rojo';
-            }
-        }
-
         function renderTabScorecard() {
             const tab = document.getElementById('tab-scorecard');
             
-            // Validar que analytics tenga todas las propiedades necesarias
-            if (!analytics.totalVentas) {
-                tab.innerHTML = '<div class="loading"><h3>Calculando datos...</h3></div>';
-                return;
-            }
-            
-            const semaforoVentas = getSemaforoClass(analytics.ventas2025 || 0, analytics.meta2025 || 1);
-            const semaforoMargen = getSemaforoClass(analytics.margenGlobal || 0, CEO_CONFIG.margenObjetivo);
-            const semaforoProyeccion = getSemaforoClass(analytics.probabilidadCumplimiento || 0, 100);
+            let html = '<div class="kpis">';
+            html += '<div class="kpi-card"><h3>Ventas Totales</h3><div class="value">' + formatCurrency(analytics.totalVentas || 0) + '</div></div>';
+            html += '<div class="kpi-card"><h3>Número de Facturas</h3><div class="value">' + (analytics.numFacturas || 0) + '</div></div>';
+            html += '<div class="kpi-card"><h3>Ticket Promedio</h3><div class="value">' + formatCurrency(analytics.ticketPromedio || 0) + '</div></div>';
+            html += '<div class="kpi-card"><h3>Total Clientes</h3><div class="value">' + (analytics.totalClientes || 0) + '</div></div>';
+            html += '</div>';
 
-            const alertasHTML = [];
-            if (analytics.clientesVIPEnRiesgo && analytics.clientesVIPEnRiesgo.length > 0) {
-                alertasHTML.push(`• ${analytics.clientesVIPEnRiesgo.length} clientes VIP sin comprar en ${CEO_CONFIG.diasClienteInactivo}+ días`);
-            }
-            if (analytics.productosBajoMargen && analytics.productosBajoMargen.length > 0) {
-                alertasHTML.push(`• ${analytics.productosBajoMargen.length} productos con margen < 35%`);
-            }
-            if (analytics.crecimientoMensual < 0) {
-                alertasHTML.push(`• Decrecimiento mensual del ${Math.abs(analytics.crecimientoMensual).toFixed(1)}%`);
-            }
-            if (analytics.gapToGoal && analytics.gapToGoal < 0) {
-                alertasHTML.push(`• Proyección del mes supera la meta`);
-            } else if (analytics.diasRestantes > 0 && analytics.ventasNecesariasDiarias > analytics.promedioDiario * 1.5) {
-                alertasHTML.push(`• Se requiere ${formatCurrency(analytics.ventasNecesariasDiarias)}/día para cumplir meta (${((analytics.ventasNecesariasDiarias/analytics.promedioDiario - 1) * 100).toFixed(0)}% más que el promedio)`);
-            }
+            html += '<div class="kpis">';
+            html += '<div class="kpi-card"><h3>Ventas 2024</h3><div class="value">' + formatCurrency(analytics.ventas2024 || 0) + '</div></div>';
+            html += '<div class="kpi-card"><h3>Meta 2025</h3><div class="value">' + formatCurrency(analytics.meta2025 || 0) + '</div></div>';
+            html += '<div class="kpi-card"><h3>Ventas 2025</h3><div class="value">' + formatCurrency(analytics.ventas2025 || 0) + '</div></div>';
+            html += '<div class="kpi-card"><h3>Avance vs Meta</h3><div class="value">' + (analytics.avanceVsMeta || 0).toFixed(1) + '%</div></div>';
+            html += '</div>';
 
-            tab.innerHTML = `
-                <div class="projection-card">
-                    <h3>🎯 Proyección del Mes</h3>
-                    <div class="projection-grid">
-                        <div class="projection-item">
-                            <h4>Meta Mensual</h4>
-                            <div class="proj-value">${formatCurrency(analytics.metaMensual || 0)}</div>
-                        </div>
-                        <div class="projection-item">
-                            <h4>Ventas a la Fecha</h4>
-                            <div class="proj-value">${formatCurrency(analytics.ventasMesHastaHoy || 0)}</div>
-                        </div>
-                        <div class="projection-item">
-                            <h4>Proyección Mes</h4>
-                            <div class="proj-value">${formatCurrency(analytics.proyeccionMes || 0)}</div>
-                            <div class="proj-detail">${(analytics.probabilidadCumplimiento || 0).toFixed(0)}% probabilidad</div>
-                        </div>
-                        <div class="projection-item">
-                            <h4>Días Restantes</h4>
-                            <div class="proj-value">${analytics.diasRestantes || 0}</div>
-                            <div class="proj-detail">${formatCurrency(analytics.ventasNecesariasDiarias || 0)}/día necesario</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="scorecard">
-                    <div class="scorecard-item ${semaforoVentas}">
-                        <h4>🎯 Ventas 2025 vs Meta</h4>
-                        <div class="score-value">${(analytics.avanceVsMeta || 0).toFixed(1)}%</div>
-                        <div class="score-detail">${formatCurrency(analytics.ventas2025 || 0)} de ${formatCurrency(analytics.meta2025 || 0)}</div>
-                    </div>
-                    <div class="scorecard-item ${semaforoMargen}">
-                        <h4>💰 Margen Global</h4>
-                        <div class="score-value">${((analytics.margenGlobal || 0) * 100).toFixed(1)}%</div>
-                        <div class="score-detail">Objetivo: 35%</div>
-                    </div>
-                    <div class="scorecard-item ${(analytics.crecimientoMensual || 0) >= 0 ? 'verde' : 'rojo'}">
-                        <h4>📈 Crecimiento Mensual</h4>
-                        <div class="score-value">${(analytics.crecimientoMensual || 0).toFixed(1)}%</div>
-                        <div class="score-detail">vs mes anterior</div>
-                    </div>
-                    <div class="scorecard-item ${(analytics.crecimientoAnual || 0) >= 15 ? 'verde' : (analytics.crecimientoAnual || 0) >= 10 ? 'amarillo' : 'rojo'}">
-                        <h4>📊 Crecimiento Anual</h4>
-                        <div class="score-value">${(analytics.crecimientoAnual || 0).toFixed(1)}%</div>
-                        <div class="score-detail">Meta: 15%</div>
-                    </div>
-                    <div class="scorecard-item ${(analytics.clientesInactivos && analytics.clientesInactivos.length === 0) ? 'verde' : (analytics.clientesInactivos && analytics.clientesInactivos.length < 10) ? 'amarillo' : 'rojo'}">
-                        <h4>👥 Clientes Activos</h4>
-                        <div class="score-value">${(analytics.clientesOrdenados ? analytics.clientesOrdenados.length : 0) - (analytics.clientesInactivos ? analytics.clientesInactivos.length : 0)}</div>
-                        <div class="score-detail">${analytics.clientesInactivos ? analytics.clientesInactivos.length : 0} inactivos</div>
-                    </div>
-                    <div class="scorecard-item ${(analytics.pct80_20 || 0) < 30 ? 'verde' : (analytics.pct80_20 || 0) < 40 ? 'amarillo' : 'rojo'}">
-                        <h4>🎲 Concentración 80/20</h4>
-                        <div class="score-value">${(analytics.pct80_20 || 0).toFixed(0)}%</div>
-                        <div class="score-detail">genera 80% ventas</div>
-                    </div>
-                </div>
-
-                ${alertasHTML.length > 0 ? `
-                    <div class="alert-card">
-                        <h3>⚡ Alertas Accionables HOY</h3>
-                        ${alertasHTML.map(a => `<div class="alert-item">${a}</div>`).join('')}
-                    </div>
-                ` : ''}
-
-                ${analytics.clientesVIPEnRiesgo && analytics.clientesVIPEnRiesgo.length > 0 ? `
-                    <div class="alert-card">
-                        <h3>🚨 Clientes VIP en Riesgo</h3>
-                        ${analytics.clientesVIPEnRiesgo.map(c => 
-                            `<div class="alert-item">• <strong>${c.nombre}</strong> - ${c.diasDesdeUltimaCompra} días sin comprar (${formatCurrency(c.total)} en ventas)</div>`
-                        ).join('')}
-                    </div>
-                ` : ''}
-
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>Ventas Totales</h3>
-                        <div class="value">${formatCurrency(analytics.totalVentas || 0)}</div>
-                        <div class="semaforo ${semaforoVentas}"></div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Margen Bruto</h3>
-                        <div class="value">${formatCurrency((analytics.totalVentas || 0) - (analytics.totalCostos || 0))}</div>
-                        <div class="trend ${(analytics.margenGlobal || 0) >= CEO_CONFIG.margenObjetivo ? 'up' : 'down'}">
-                            ${((analytics.margenGlobal || 0) * 100).toFixed(1)}% margen
-                        </div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Ticket Promedio</h3>
-                        <div class="value">${formatCurrency(analytics.ticketPromedio || 0)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Total Clientes</h3>
-                        <div class="value">${analytics.clientesOrdenados ? analytics.clientesOrdenados.length : 0}</div>
-                        <div class="trend">${analytics.clientesVIP ? analytics.clientesVIP.length : 0} VIP</div>
-                    </div>
-                </div>
-
-                <div class="charts">
-                    <div class="chart-card">
-                        <h3>Top 5 Clientes VIP</h3>
-                        <div class="chart-container">
-                            <canvas id="chartTopClientesVIP"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Top 5 Productos por Margen</h3>
-                        <div class="chart-container">
-                            <canvas id="chartTopProductosMargen"></canvas>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createTopClientesVIPChart();
-                createTopProductosMargenChart();
-            }, 100);
-        }
-
-        function createTopClientesVIPChart() {
-            const ctx = document.getElementById('chartTopClientesVIP');
-            if (!ctx) return;
-            if (charts.topClientesVIP) charts.topClientesVIP.destroy();
-
-            if (!analytics.clientesVIP || analytics.clientesVIP.length === 0) {
-                return;
-            }
-
-            const top5 = analytics.clientesVIP.slice(0, 5);
-            charts.topClientesVIP = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top5.map(c => c.nombre),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: top5.map(c => c.total),
-                        backgroundColor: '#5e72e4'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createTopProductosMargenChart() {
-            const ctx = document.getElementById('chartTopProductosMargen');
-            if (!ctx) return;
-            if (charts.topProductosMargen) charts.topProductosMargen.destroy();
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                return;
-            }
-
-            const top5 = analytics.productosConCategoria
-                .filter(p => p.margen > 0)
-                .sort((a, b) => b.margen - a.margen)
-                .slice(0, 5);
-
-            if (top5.length === 0) return;
-
-            charts.topProductosMargen = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top5.map(p => p.nombre.substring(0, 30)),
-                    datasets: [{
-                        label: 'Margen %',
-                        data: top5.map(p => p.margen * 100),
-                        backgroundColor: top5.map(p => p.margen >= CEO_CONFIG.margenObjetivo ? '#10b981' : '#f59e0b')
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: { callback: value => value + '%' }
-                        }
-                    }
-                }
-            });
+            tab.innerHTML = html;
         }
 
         function renderTabVentas() {
             const tab = document.getElementById('tab-ventas');
             
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>Ventas 2024</h3>
-                        <div class="value">${formatCurrency(analytics.ventas2024 || 0)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Meta 2025 (+15%)</h3>
-                        <div class="value">${formatCurrency(analytics.meta2025 || 0)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Ventas 2025 YTD</h3>
-                        <div class="value">${formatCurrency(analytics.ventas2025 || 0)}</div>
-                        <div class="trend ${(analytics.avanceVsMeta || 0) >= 100 ? 'up' : 'down'}">
-                            ${(analytics.avanceVsMeta || 0).toFixed(1)}% de la meta
-                        </div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Crecimiento Anual</h3>
-                        <div class="value ${(analytics.crecimientoAnual || 0) >= 15 ? 'trend up' : 'trend down'}">${(analytics.crecimientoAnual || 0).toFixed(1)}%</div>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Evolución Mensual 2024 vs 2025</h3>
-                    <div class="chart-container">
-                        <canvas id="chartEvolucionMensual"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Tendencia y Proyección</h3>
-                    <div class="chart-container">
-                        <canvas id="chartTendencia"></canvas>
-                    </div>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createEvolucionMensualChart();
-                createTendenciaChart();
-            }, 100);
-        }
-
-        function createEvolucionMensualChart() {
-            const ctx = document.getElementById('chartEvolucionMensual');
-            if (!ctx) return;
-            if (charts.evolucionMensual) charts.evolucionMensual.destroy();
-
-            if (!allData || allData.length === 0) {
-                return;
-            }
-
-            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-            const ventas2024 = Array(12).fill(0);
-            const ventas2025 = Array(12).fill(0);
-
-            allData.forEach(row => {
-                if (row.numFactura !== '') {
-                    if (row.año === 2024) ventas2024[row.mes - 1] += row.total;
-                    if (row.año === 2025) ventas2025[row.mes - 1] += row.total;
-                }
-            });
-
-            charts.evolucionMensual = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: meses,
-                    datasets: [
-                        {
-                            label: '2024',
-                            data: ventas2024,
-                            borderColor: '#94a3b8',
-                            backgroundColor: 'rgba(148, 163, 184, 0.1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: '2025',
-                            data: ventas2025,
-                            borderColor: '#5e72e4',
-                            backgroundColor: 'rgba(94, 114, 228, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createTendenciaChart() {
-            const ctx = document.getElementById('chartTendencia');
-            if (!ctx) return;
-            if (charts.tendencia) charts.tendencia.destroy();
-
-            if (!allData || allData.length === 0) {
-                return;
-            }
-
-            // Calcular ventas mensuales históricas
-            const ventasMensuales = {};
-            allData.forEach(row => {
-                if (row.numFactura !== '') {
-                    const key = `${row.año}-${row.mes}`;
-                    if (!ventasMensuales[key]) ventasMensuales[key] = 0;
-                    ventasMensuales[key] += row.total;
-                }
-            });
-
-            const sortedKeys = Object.keys(ventasMensuales).sort();
-            const ultimos12Meses = sortedKeys.slice(-12);
-
-            if (ultimos12Meses.length === 0) return;
-            
-            charts.tendencia = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ultimos12Meses.map(k => {
-                        const [año, mes] = k.split('-');
-                        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-                        return `${meses[parseInt(mes) - 1]} ${año}`;
-                    }),
-                    datasets: [{
-                        label: 'Ventas Mensuales',
-                        data: ultimos12Meses.map(k => ventasMensuales[k]),
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTabRentabilidad() {
-            const tab = document.getElementById('tab-rentabilidad');
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
-                return;
-            }
-
-            const productosAltoMargen = analytics.productosConCategoria
-                .filter(p => p.margen >= CEO_CONFIG.margenObjetivo)
-                .length;
-
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>Ventas Totales</h3>
-                        <div class="value">${formatCurrency(analytics.totalVentas || 0)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Costos Totales</h3>
-                        <div class="value">${formatCurrency(analytics.totalCostos || 0)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Margen Bruto</h3>
-                        <div class="value">${formatCurrency((analytics.totalVentas || 0) - (analytics.totalCostos || 0))}</div>
-                        <div class="trend ${(analytics.margenGlobal || 0) >= CEO_CONFIG.margenObjetivo ? 'up' : 'down'}">
-                            ${((analytics.margenGlobal || 0) * 100).toFixed(1)}% (objetivo: 35%)
-                        </div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Productos sobre Objetivo</h3>
-                        <div class="value">${productosAltoMargen}</div>
-                        <div class="trend">de ${analytics.productosConCategoria.length} productos</div>
-                    </div>
-                </div>
-
-                ${analytics.productosBajoMargen && analytics.productosBajoMargen.length > 0 ? `
-                    <div class="alert-card">
-                        <h3>⚠️ Productos con Margen < 35%</h3>
-                        ${analytics.productosBajoMargen.slice(0, 10).map(p => 
-                            `<div class="alert-item">• ${p.nombre} - Margen: ${(p.margen * 100).toFixed(1)}%</div>`
-                        ).join('')}
-                    </div>
-                ` : ''}
-
-                <div class="charts">
-                    <div class="chart-card">
-                        <h3>Top 10 Productos por Rentabilidad (Margen Bruto $)</h3>
-                        <div class="chart-container">
-                            <canvas id="chartRentabilidadProductos"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Top 10 Clientes por Rentabilidad</h3>
-                        <div class="chart-container">
-                            <canvas id="chartRentabilidadClientes"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis de Rentabilidad por Producto (Top 20)</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Ventas</th>
-                                <th>Costos</th>
-                                <th>Margen $</th>
-                                <th>Margen %</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.productosConCategoria.slice(0, 20).map(p => `
-                                <tr>
-                                    <td>${p.nombre}</td>
-                                    <td>${formatCurrency(p.valor)}</td>
-                                    <td>${formatCurrency(p.costoTotal)}</td>
-                                    <td>${formatCurrency(p.valor - p.costoTotal)}</td>
-                                    <td class="${p.margen >= CEO_CONFIG.margenObjetivo ? 'trend up' : 'trend down'}">
-                                        ${(p.margen * 100).toFixed(1)}%
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createRentabilidadProductosChart();
-                createRentabilidadClientesChart();
-            }, 100);
-        }
-
-        function createRentabilidadProductosChart() {
-            const ctx = document.getElementById('chartRentabilidadProductos');
-            if (!ctx) return;
-            if (charts.rentabilidadProductos) charts.rentabilidadProductos.destroy();
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.productosConCategoria
-                .map(p => ({ ...p, margenBruto: p.valor - p.costoTotal }))
-                .sort((a, b) => b.margenBruto - a.margenBruto)
-                .slice(0, 10);
-
-            if (top10.length === 0) return;
-
-            charts.rentabilidadProductos = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(p => p.nombre.substring(0, 25)),
-                    datasets: [{
-                        label: 'Margen Bruto 
-
-        function renderTabClientes() {
-            const tab = document.getElementById('tab-clientes');
-
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>Cargando datos de clientes...</h3></div>';
-                return;
-            }
-
-            const clvPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.total, 0) / analytics.clientesOrdenados.length;
-            const frecuenciaPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.frecuencia, 0) / analytics.clientesOrdenados.length;
-
-            const segmentos = {};
-            if (analytics.rfmData && analytics.rfmData.length > 0) {
-                analytics.rfmData.forEach(c => {
-                    if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
-                    segmentos[c.segmento]++;
-                });
-            }
-
-            const segmentoVIP = segmentos['VIP'] || 0;
-            const segmentoLeal = segmentos['Leal'] || 0;
-            const segmentoOcasional = segmentos['Ocasional'] || 0;
-            const segmentoRiesgo = segmentos['Riesgo'] || 0;
-
-            const kpisHTML = '<div class="kpis">' +
-                '<div class="kpi-card"><h3>CLV Promedio</h3><div class="value">' + formatCurrency(clvPromedio) + '</div></div>' +
-                '<div class="kpi-card"><h3>Frecuencia Promedio</h3><div class="value">' + frecuenciaPromedio.toFixed(1) + '</div><div class="trend">compras por cliente</div></div>' +
-                '<div class="kpi-card"><h3>Clientes VIP</h3><div class="value">' + segmentoVIP + '</div></div>' +
-                '<div class="kpi-card"><h3>Clientes en Riesgo</h3><div class="value">' + segmentoRiesgo + '</div></div>' +
-                '</div>';
-
-            const segmentacionHTML = '<div class="info-card">' +
-                '<h3>📊 Segmentación RFM</h3>' +
-                '<div class="info-item">• <strong>VIP:</strong> ' + segmentoVIP + ' clientes (compra reciente, alta frecuencia, alto valor)</div>' +
-                '<div class="info-item">• <strong>Leales:</strong> ' + segmentoLeal + ' clientes (compran regularmente)</div>' +
-                '<div class="info-item">• <strong>Ocasionales:</strong> ' + segmentoOcasional + ' clientes (compras esporádicas)</div>' +
-                '<div class="info-item">• <strong>En Riesgo:</strong> ' + segmentoRiesgo + ' clientes (90+ días sin comprar)</div>' +
-                '</div>';
-
-            let alertasHTML = '';
-            if (analytics.clientesInactivos && analytics.clientesInactivos.length > 0) {
-                alertasHTML = '<div class="alert-card"><h3>⚠️ Clientes Inactivos (' + CEO_CONFIG.diasClienteInactivo + '+ días sin comprar)</h3>';
-                analytics.clientesInactivos.slice(0, 10).forEach(c => {
-                    alertasHTML += '<div class="alert-item">• <strong>' + c.nombre + '</strong> - ' + c.diasDesdeUltimaCompra + ' días - CLV: ' + formatCurrency(c.total) + '</div>';
-                });
-                alertasHTML += '</div>';
-            }
-
-            const chartsHTML = '<div class="charts">' +
-                '<div class="chart-card"><h3>Segmentación de Clientes</h3><div class="chart-container"><canvas id="chartSegmentacion"></canvas></div></div>' +
-                '<div class="chart-card"><h3>Top 10 Clientes por CLV</h3><div class="chart-container"><canvas id="chartTopCLV"></canvas></div></div>' +
-                '</div>';
-
-            let tableHTML = '<div class="table-card"><h3>Análisis RFM de Clientes (Top 20)</h3><table>' +
-                '<thead><tr><th>Cliente</th><th>Segmento</th><th>CLV</th><th>Frecuencia</th><th>Última Compra</th><th>Días</th></tr></thead>' +
-                '<tbody>';
-            
-            if (analytics.rfmData && analytics.rfmData.length > 0) {
-                analytics.rfmData.slice(0, 20).forEach(c => {
-                    const trendClass = c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo ? 'trend down' : 'trend up';
-                    tableHTML += '<tr>' +
-                        '<td>' + c.nombre + '</td>' +
-                        '<td><span class="badge ' + c.segmento + '">' + c.segmento + '</span></td>' +
-                        '<td>' + formatCurrency(c.total) + '</td>' +
-                        '<td>' + c.frecuencia + '</td>' +
-                        '<td>' + c.ultimaCompra.toLocaleDateString('es-MX') + '</td>' +
-                        '<td class="' + trendClass + '">' + c.diasDesdeUltimaCompra + '</td>' +
-                        '</tr>';
-                });
-            } else {
-                tableHTML += '<tr><td colspan="6">No hay datos disponibles</td></tr>';
-            }
-            
-            tableHTML += '</tbody></table></div>';
-
-            tab.innerHTML = kpisHTML + segmentacionHTML + alertasHTML + chartsHTML + tableHTML;
-
-
-
-
-            setTimeout(() => {
-                createSegmentacionChart();
-                createTopCLVChart();
-            }, 100);
-        }
-
-        function createSegmentacionChart() {
-            const ctx = document.getElementById('chartSegmentacion');
-            if (!ctx) return;
-            if (charts.segmentacion) charts.segmentacion.destroy();
-
-            if (!analytics.rfmData || analytics.rfmData.length === 0) {
-                return;
-            }
-
-            const segmentos = {};
-            analytics.rfmData.forEach(c => {
-                if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
-                segmentos[c.segmento]++;
-            });
-
-            charts.segmentacion = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(segmentos),
-                    datasets: [{
-                        data: Object.values(segmentos),
-                        backgroundColor: ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        }
-
-        function createTopCLVChart() {
-            const ctx = document.getElementById('chartTopCLV');
-            if (!ctx) return;
-            if (charts.topCLV) charts.topCLV.destroy();
-
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.clientesOrdenados.slice(0, 10);
-
-            charts.topCLV = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(c => c.nombre),
-                    datasets: [{
-                        label: 'CLV',
-                        data: top10.map(c => c.total),
-                        backgroundColor: '#5e72e4'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTabProductos() {
-            const tab = document.getElementById('tab-productos');
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
-                return;
-            }
-
-            const productosA = analytics.productosConCategoria.filter(p => p.categoria === 'A');
-            const productosB = analytics.productosConCategoria.filter(p => p.categoria === 'B');
-            const productosC = analytics.productosConCategoria.filter(p => p.categoria === 'C');
-
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>Productos Categoría A</h3>
-                        <div class="value">${productosA.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Top 80% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Productos Categoría B</h3>
-                        <div class="value">${productosB.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Siguiente 15% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Productos Categoría C</h3>
-                        <div class="value">${productosC.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Último 5% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Margen Promedio</h3>
-                        <div class="value">${(analytics.productosConCategoria.reduce((sum, p) => sum + p.margen, 0) / analytics.productosConCategoria.length * 100).toFixed(1)}%</div>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Top 15 Productos por Ventas</h3>
-                    <div class="chart-container">
-                        <canvas id="chartTopProductos"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis ABC de Productos</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Producto</th>
-                                <th>Categoría</th>
-                                <th>Ventas</th>
-                                <th>Margen %</th>
-                                <th>% Acum</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.productosConCategoria.map((p, idx) => `
-                                <tr>
-                                    <td>${idx + 1}</td>
-                                    <td>${p.nombre}</td>
-                                    <td><span class="badge ${p.categoria}">${p.categoria}</span></td>
-                                    <td>${formatCurrency(p.valor)}</td>
-                                    <td class="${p.margen >= CEO_CONFIG.margenObjetivo ? 'trend up' : 'trend down'}">
-                                        ${(p.margen * 100).toFixed(1)}%
-                                    </td>
-                                    <td>${p.pctAcumulado.toFixed(1)}%</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => createTopProductosChart(), 100);
-        }
-
-        function createTopProductosChart() {
-            const ctx = document.getElementById('chartTopProductos');
-            if (!ctx) return;
-            if (charts.topProductos) charts.topProductos.destroy();
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                return;
-            }
-
-            const top15 = analytics.productosConCategoria.slice(0, 15);
-
-            charts.topProductos = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top15.map(p => p.nombre.substring(0, 30)),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: top15.map(p => p.valor),
-                        backgroundColor: top15.map(p => {
-                            if (p.categoria === 'A') return '#10b981';
-                            if (p.categoria === 'B') return '#f59e0b';
-                            return '#ef4444';
-                        })
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTabGeografia() {
-            const tab = document.getElementById('tab-geografia');
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos geográficos disponibles</h3></div>';
-                return;
-            }
-
-            tab.innerHTML = `
-                <div class="chart-card">
-                    <h3>Top 10 Estados por Ventas</h3>
-                    <div class="chart-container">
-                        <canvas id="chartEstadosVentas"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Top 10 Estados por Crecimiento</h3>
-                    <div class="chart-container">
-                        <canvas id="chartEstadosCrecimiento"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis por Estado</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Estado</th>
-                                <th>Ventas 2025</th>
-                                <th>Crecimiento vs 2024</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.estadosConCrecimiento.map((e, idx) => `
-                                <tr>
-                                    <td>${idx + 1}</td>
-                                    <td>${e.estado}</td>
-                                    <td>${formatCurrency(e.ventas)}</td>
-                                    <td class="${e.crecimiento >= 0 ? 'trend up' : 'trend down'}">
-                                        ${e.crecimiento >= 0 ? '↗' : '↘'} ${Math.abs(e.crecimiento).toFixed(1)}%
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createEstadosVentasChart();
-                createEstadosCrecimientoChart();
-            }, 100);
-        }
-
-        function createEstadosVentasChart() {
-            const ctx = document.getElementById('chartEstadosVentas');
-            if (!ctx) return;
-            if (charts.estadosVentas) charts.estadosVentas.destroy();
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.estadosConCrecimiento
-                .sort((a, b) => b.ventas - a.ventas)
-                .slice(0, 10);
-
-            charts.estadosVentas = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(e => e.estado),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: top10.map(e => e.ventas),
-                        backgroundColor: '#5e72e4'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createEstadosCrecimientoChart() {
-            const ctx = document.getElementById('chartEstadosCrecimiento');
-            if (!ctx) return;
-            if (charts.estadosCrecimiento) charts.estadosCrecimiento.destroy();
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.estadosConCrecimiento.slice(0, 10);
-
-            charts.estadosCrecimiento = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(e => e.estado),
-                    datasets: [{
-                        label: 'Crecimiento %',
-                        data: top10.map(e => e.crecimiento),
-                        backgroundColor: top10.map(e => e.crecimiento >= 0 ? '#10b981' : '#ef4444')
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            ticks: { callback: value => value + '%' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function showError(message) {
-            const errorSection = document.getElementById('errorSection');
-            errorSection.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
-            errorSection.style.display = 'block';
-        }
-
-        msalInstance.handleRedirectPromise().then(response => {
-            if (response) {
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('userName').textContent = response.account.name;
-                loadData();
-            }
-        });
-    </script>
-</body>
-</html>,
-                        data: top10.map(p => p.margenBruto),
-                        backgroundColor: '#10b981'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createRentabilidadClientesChart() {
-            const ctx = document.getElementById('chartRentabilidadClientes');
-            if (!ctx) return;
-            if (charts.rentabilidadClientes) charts.rentabilidadClientes.destroy();
-
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.clientesOrdenados
-                .map(c => ({ ...c, margenBruto: c.total - c.totalCosto }))
-                .sort((a, b) => b.margenBruto - a.margenBruto)
-                .slice(0, 10);
-
-            if (top10.length === 0) return;
-
-            charts.rentabilidadClientes = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(c => c.nombre),
-                    datasets: [{
-                        label: 'Margen Bruto 
-
-        function renderTabClientes() {
-            const tab = document.getElementById('tab-clientes');
-
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos de clientes disponibles</h3></div>';
-                return;
-            }
-
-            // Calcular CLV promedio
-            const clvPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.total, 0) / analytics.clientesOrdenados.length;
-
-            // Frecuencia promedio
-            const frecuenciaPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.frecuencia, 0) / analytics.clientesOrdenados.length;
-
-            // Segmentación RFM
-            const segmentos = {};
-            if (analytics.rfmData && analytics.rfmData.length > 0) {
-                analytics.rfmData.forEach(c => {
-                    if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
-                    segmentos[c.segmento]++;
-                });
-            }
-
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>CLV Promedio</h3>
-                        <div class="value">${formatCurrency(clvPromedio)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Frecuencia Promedio</h3>
-                        <div class="value">${frecuenciaPromedio.toFixed(1)}</div>
-                        <div class="trend">compras por cliente</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Clientes VIP</h3>
-                        <div class="value">${segmentos['VIP'] || 0}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Clientes en Riesgo</h3>
-                        <div class="value">${segmentos['Riesgo'] || 0}</div>
-                    </div>
-                </div>
-
-                <div class="info-card">
-                    <h3>📊 Segmentación RFM</h3>
-                    <div class="info-item">• <strong>VIP:</strong> ${segmentos['VIP'] || 0} clientes (compra reciente, alta frecuencia, alto valor)</div>
-                    <div class="info-item">• <strong>Leales:</strong> ${segmentos['Leal'] || 0} clientes (compran regularmente)</div>
-                    <div class="info-item">• <strong>Ocasionales:</strong> ${segmentos['Ocasional'] || 0} clientes (compras esporádicas)</div>
-                    <div class="info-item">• <strong>En Riesgo:</strong> ${segmentos['Riesgo'] || 0} clientes (90+ días sin comprar)</div>
-                </div>
-
-                ${analytics.clientesInactivos && analytics.clientesInactivos.length > 0 ? `
-                    <div class="alert-card">
-                        <h3>⚠️ Clientes Inactivos (${CEO_CONFIG.diasClienteInactivo}+ días sin comprar)</h3>
-                        ${analytics.clientesInactivos.slice(0, 10).map(c => 
-                            `<div class="alert-item">• <strong>${c.nombre}</strong> - ${c.diasDesdeUltimaCompra} días - CLV: ${formatCurrency(c.total)}</div>`
-                        ).join('')}
-                    </div>
-                ` : ''}
-
-                <div class="charts">
-                    <div class="chart-card">
-                        <h3>Segmentación de Clientes</h3>
-                        <div class="chart-container">
-                            <canvas id="chartSegmentacion"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Top 10 Clientes por CLV</h3>
-                        <div class="chart-container">
-                            <canvas id="chartTopCLV"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis RFM de Clientes (Top 20)</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Segmento</th>
-                                <th>CLV</th>
-                                <th>Frecuencia</th>
-                                <th>Última Compra</th>
-                                <th>Días</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.rfmData && analytics.rfmData.length > 0 ? analytics.rfmData.slice(0, 20).map(c => `
-                                <tr>
-                                    <td>${c.nombre}</td>
-                                    <td><span class="badge ${c.segmento}">${c.segmento}</span></td>
-                                    <td>${formatCurrency(c.total)}</td>
-                                    <td>${c.frecuencia}</td>
-                                    <td>${c.ultimaCompra.toLocaleDateString('es-MX')}</td>
-                                    <td class="${c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo ? 'trend down' : 'trend up'}">
-                                        ${c.diasDesdeUltimaCompra}
-                                    </td>
-                                </tr>
-                            `).join('') : '<tr><td colspan="6">No hay datos disponibles</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createSegmentacionChart();
-                createTopCLVChart();
-            }, 100);
-        }
-
-        function createSegmentacionChart() {
-            const ctx = document.getElementById('chartSegmentacion');
-            if (!ctx) return;
-            if (charts.segmentacion) charts.segmentacion.destroy();
-
-            if (!analytics.rfmData || analytics.rfmData.length === 0) {
-                return;
-            }
-
-            const segmentos = {};
-            analytics.rfmData.forEach(c => {
-                if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
-                segmentos[c.segmento]++;
-            });
-
-            charts.segmentacion = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(segmentos),
-                    datasets: [{
-                        data: Object.values(segmentos),
-                        backgroundColor: ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        }
-
-        function createTopCLVChart() {
-            const ctx = document.getElementById('chartTopCLV');
-            if (!ctx) return;
-            if (charts.topCLV) charts.topCLV.destroy();
-
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.clientesOrdenados.slice(0, 10);
-
-            charts.topCLV = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(c => c.nombre),
-                    datasets: [{
-                        label: 'CLV',
-                        data: top10.map(c => c.total),
-                        backgroundColor: '#5e72e4'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTabProductos() {
-            const tab = document.getElementById('tab-productos');
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
-                return;
-            }
-
-            const productosA = analytics.productosConCategoria.filter(p => p.categoria === 'A');
-            const productosB = analytics.productosConCategoria.filter(p => p.categoria === 'B');
-            const productosC = analytics.productosConCategoria.filter(p => p.categoria === 'C');
-
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>Productos Categoría A</h3>
-                        <div class="value">${productosA.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Top 80% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Productos Categoría B</h3>
-                        <div class="value">${productosB.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Siguiente 15% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Productos Categoría C</h3>
-                        <div class="value">${productosC.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Último 5% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Margen Promedio</h3>
-                        <div class="value">${(analytics.productosConCategoria.reduce((sum, p) => sum + p.margen, 0) / analytics.productosConCategoria.length * 100).toFixed(1)}%</div>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Top 15 Productos por Ventas</h3>
-                    <div class="chart-container">
-                        <canvas id="chartTopProductos"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis ABC de Productos</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Producto</th>
-                                <th>Categoría</th>
-                                <th>Ventas</th>
-                                <th>Margen %</th>
-                                <th>% Acum</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.productosConCategoria.map((p, idx) => `
-                                <tr>
-                                    <td>${idx + 1}</td>
-                                    <td>${p.nombre}</td>
-                                    <td><span class="badge ${p.categoria}">${p.categoria}</span></td>
-                                    <td>${formatCurrency(p.valor)}</td>
-                                    <td class="${p.margen >= CEO_CONFIG.margenObjetivo ? 'trend up' : 'trend down'}">
-                                        ${(p.margen * 100).toFixed(1)}%
-                                    </td>
-                                    <td>${p.pctAcumulado.toFixed(1)}%</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => createTopProductosChart(), 100);
-        }
-
-        function createTopProductosChart() {
-            const ctx = document.getElementById('chartTopProductos');
-            if (!ctx) return;
-            if (charts.topProductos) charts.topProductos.destroy();
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                return;
-            }
-
-            const top15 = analytics.productosConCategoria.slice(0, 15);
-
-            charts.topProductos = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top15.map(p => p.nombre.substring(0, 30)),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: top15.map(p => p.valor),
-                        backgroundColor: top15.map(p => {
-                            if (p.categoria === 'A') return '#10b981';
-                            if (p.categoria === 'B') return '#f59e0b';
-                            return '#ef4444';
-                        })
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTabGeografia() {
-            const tab = document.getElementById('tab-geografia');
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos geográficos disponibles</h3></div>';
-                return;
-            }
-
-            tab.innerHTML = `
-                <div class="chart-card">
-                    <h3>Top 10 Estados por Ventas</h3>
-                    <div class="chart-container">
-                        <canvas id="chartEstadosVentas"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Top 10 Estados por Crecimiento</h3>
-                    <div class="chart-container">
-                        <canvas id="chartEstadosCrecimiento"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis por Estado</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Estado</th>
-                                <th>Ventas 2025</th>
-                                <th>Crecimiento vs 2024</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.estadosConCrecimiento.map((e, idx) => `
-                                <tr>
-                                    <td>${idx + 1}</td>
-                                    <td>${e.estado}</td>
-                                    <td>${formatCurrency(e.ventas)}</td>
-                                    <td class="${e.crecimiento >= 0 ? 'trend up' : 'trend down'}">
-                                        ${e.crecimiento >= 0 ? '↗' : '↘'} ${Math.abs(e.crecimiento).toFixed(1)}%
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createEstadosVentasChart();
-                createEstadosCrecimientoChart();
-            }, 100);
-        }
-
-        function createEstadosVentasChart() {
-            const ctx = document.getElementById('chartEstadosVentas');
-            if (!ctx) return;
-            if (charts.estadosVentas) charts.estadosVentas.destroy();
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.estadosConCrecimiento
-                .sort((a, b) => b.ventas - a.ventas)
-                .slice(0, 10);
-
-            charts.estadosVentas = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(e => e.estado),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: top10.map(e => e.ventas),
-                        backgroundColor: '#5e72e4'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createEstadosCrecimientoChart() {
-            const ctx = document.getElementById('chartEstadosCrecimiento');
-            if (!ctx) return;
-            if (charts.estadosCrecimiento) charts.estadosCrecimiento.destroy();
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.estadosConCrecimiento.slice(0, 10);
-
-            charts.estadosCrecimiento = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(e => e.estado),
-                    datasets: [{
-                        label: 'Crecimiento %',
-                        data: top10.map(e => e.crecimiento),
-                        backgroundColor: top10.map(e => e.crecimiento >= 0 ? '#10b981' : '#ef4444')
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            ticks: { callback: value => value + '%' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function showError(message) {
-            const errorSection = document.getElementById('errorSection');
-            errorSection.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
-            errorSection.style.display = 'block';
-        }
-
-        msalInstance.handleRedirectPromise().then(response => {
-            if (response) {
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('userName').textContent = response.account.name;
-                loadData();
-            }
-        });
-    </script>
-</body>
-</html>,
-                        data: top10.map(c => c.margenBruto),
-                        backgroundColor: '#8b5cf6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
+            let html = '<div class="kpis">';
+            html += '<div class="kpi-card"><h3>Crecimiento Anual</h3><div class="value">' + (analytics.crecimientoAnual || 0).toFixed(1) + '%</div></div>';
+            html += '</div>';
+
+            tab.innerHTML = html;
         }
 
         function renderTabClientes() {
             const tab = document.getElementById('tab-clientes');
+            
+            let html = '<div class="kpis">';
+            html += '<div class="kpi-card"><h3>Total Clientes</h3><div class="value">' + (analytics.totalClientes || 0) + '</div></div>';
+            html += '</div>';
 
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos de clientes disponibles</h3></div>';
-                return;
-            }
-
-            // Calcular CLV promedio
-            const clvPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.total, 0) / analytics.clientesOrdenados.length;
-
-            // Frecuencia promedio
-            const frecuenciaPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.frecuencia, 0) / analytics.clientesOrdenados.length;
-
-            // Segmentación RFM
-            const segmentos = {};
-            if (analytics.rfmData && analytics.rfmData.length > 0) {
-                analytics.rfmData.forEach(c => {
-                    if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
-                    segmentos[c.segmento]++;
+            if (analytics.clientesOrdenados && analytics.clientesOrdenados.length > 0) {
+                html += '<div class="chart-card"><h3>Top 10 Clientes</h3>';
+                html += '<table style="width:100%; border-collapse: collapse;">';
+                html += '<tr><th style="text-align:left; padding:10px;">Cliente</th><th style="text-align:right; padding:10px;">Ventas</th></tr>';
+                
+                analytics.clientesOrdenados.slice(0, 10).forEach(function(c) {
+                    html += '<tr>';
+                    html += '<td style="padding:10px;">' + c.nombre + '</td>';
+                    html += '<td style="text-align:right; padding:10px;">' + formatCurrency(c.total) + '</td>';
+                    html += '</tr>';
                 });
+                
+                html += '</table></div>';
             }
 
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>CLV Promedio</h3>
-                        <div class="value">${formatCurrency(clvPromedio)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Frecuencia Promedio</h3>
-                        <div class="value">${frecuenciaPromedio.toFixed(1)}</div>
-                        <div class="trend">compras por cliente</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Clientes VIP</h3>
-                        <div class="value">${segmentos['VIP'] || 0}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Clientes en Riesgo</h3>
-                        <div class="value">${segmentos['Riesgo'] || 0}</div>
-                    </div>
-                </div>
-
-                <div class="info-card">
-                    <h3>📊 Segmentación RFM</h3>
-                    <div class="info-item">• <strong>VIP:</strong> ${segmentos['VIP'] || 0} clientes (compra reciente, alta frecuencia, alto valor)</div>
-                    <div class="info-item">• <strong>Leales:</strong> ${segmentos['Leal'] || 0} clientes (compran regularmente)</div>
-                    <div class="info-item">• <strong>Ocasionales:</strong> ${segmentos['Ocasional'] || 0} clientes (compras esporádicas)</div>
-                    <div class="info-item">• <strong>En Riesgo:</strong> ${segmentos['Riesgo'] || 0} clientes (90+ días sin comprar)</div>
-                </div>
-
-                ${analytics.clientesInactivos && analytics.clientesInactivos.length > 0 ? `
-                    <div class="alert-card">
-                        <h3>⚠️ Clientes Inactivos (${CEO_CONFIG.diasClienteInactivo}+ días sin comprar)</h3>
-                        ${analytics.clientesInactivos.slice(0, 10).map(c => 
-                            `<div class="alert-item">• <strong>${c.nombre}</strong> - ${c.diasDesdeUltimaCompra} días - CLV: ${formatCurrency(c.total)}</div>`
-                        ).join('')}
-                    </div>
-                ` : ''}
-
-                <div class="charts">
-                    <div class="chart-card">
-                        <h3>Segmentación de Clientes</h3>
-                        <div class="chart-container">
-                            <canvas id="chartSegmentacion"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Top 10 Clientes por CLV</h3>
-                        <div class="chart-container">
-                            <canvas id="chartTopCLV"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis RFM de Clientes (Top 20)</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Segmento</th>
-                                <th>CLV</th>
-                                <th>Frecuencia</th>
-                                <th>Última Compra</th>
-                                <th>Días</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.rfmData && analytics.rfmData.length > 0 ? analytics.rfmData.slice(0, 20).map(c => `
-                                <tr>
-                                    <td>${c.nombre}</td>
-                                    <td><span class="badge ${c.segmento}">${c.segmento}</span></td>
-                                    <td>${formatCurrency(c.total)}</td>
-                                    <td>${c.frecuencia}</td>
-                                    <td>${c.ultimaCompra.toLocaleDateString('es-MX')}</td>
-                                    <td class="${c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo ? 'trend down' : 'trend up'}">
-                                        ${c.diasDesdeUltimaCompra}
-                                    </td>
-                                </tr>
-                            `).join('') : '<tr><td colspan="6">No hay datos disponibles</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createSegmentacionChart();
-                createTopCLVChart();
-            }, 100);
-        }
-
-        function createSegmentacionChart() {
-            const ctx = document.getElementById('chartSegmentacion');
-            if (!ctx) return;
-            if (charts.segmentacion) charts.segmentacion.destroy();
-
-            if (!analytics.rfmData || analytics.rfmData.length === 0) {
-                return;
-            }
-
-            const segmentos = {};
-            analytics.rfmData.forEach(c => {
-                if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
-                segmentos[c.segmento]++;
-            });
-
-            charts.segmentacion = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(segmentos),
-                    datasets: [{
-                        data: Object.values(segmentos),
-                        backgroundColor: ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        }
-
-        function createTopCLVChart() {
-            const ctx = document.getElementById('chartTopCLV');
-            if (!ctx) return;
-            if (charts.topCLV) charts.topCLV.destroy();
-
-            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.clientesOrdenados.slice(0, 10);
-
-            charts.topCLV = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(c => c.nombre),
-                    datasets: [{
-                        label: 'CLV',
-                        data: top10.map(c => c.total),
-                        backgroundColor: '#5e72e4'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTabProductos() {
-            const tab = document.getElementById('tab-productos');
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
-                return;
-            }
-
-            const productosA = analytics.productosConCategoria.filter(p => p.categoria === 'A');
-            const productosB = analytics.productosConCategoria.filter(p => p.categoria === 'B');
-            const productosC = analytics.productosConCategoria.filter(p => p.categoria === 'C');
-
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>Productos Categoría A</h3>
-                        <div class="value">${productosA.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Top 80% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Productos Categoría B</h3>
-                        <div class="value">${productosB.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Siguiente 15% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Productos Categoría C</h3>
-                        <div class="value">${productosC.length}</div>
-                        <div style="font-size: 0.9em; margin-top: 8px;">Último 5% de ventas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Margen Promedio</h3>
-                        <div class="value">${(analytics.productosConCategoria.reduce((sum, p) => sum + p.margen, 0) / analytics.productosConCategoria.length * 100).toFixed(1)}%</div>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Top 15 Productos por Ventas</h3>
-                    <div class="chart-container">
-                        <canvas id="chartTopProductos"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis ABC de Productos</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Producto</th>
-                                <th>Categoría</th>
-                                <th>Ventas</th>
-                                <th>Margen %</th>
-                                <th>% Acum</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.productosConCategoria.map((p, idx) => `
-                                <tr>
-                                    <td>${idx + 1}</td>
-                                    <td>${p.nombre}</td>
-                                    <td><span class="badge ${p.categoria}">${p.categoria}</span></td>
-                                    <td>${formatCurrency(p.valor)}</td>
-                                    <td class="${p.margen >= CEO_CONFIG.margenObjetivo ? 'trend up' : 'trend down'}">
-                                        ${(p.margen * 100).toFixed(1)}%
-                                    </td>
-                                    <td>${p.pctAcumulado.toFixed(1)}%</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => createTopProductosChart(), 100);
-        }
-
-        function createTopProductosChart() {
-            const ctx = document.getElementById('chartTopProductos');
-            if (!ctx) return;
-            if (charts.topProductos) charts.topProductos.destroy();
-
-            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
-                return;
-            }
-
-            const top15 = analytics.productosConCategoria.slice(0, 15);
-
-            charts.topProductos = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top15.map(p => p.nombre.substring(0, 30)),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: top15.map(p => p.valor),
-                        backgroundColor: top15.map(p => {
-                            if (p.categoria === 'A') return '#10b981';
-                            if (p.categoria === 'B') return '#f59e0b';
-                            return '#ef4444';
-                        })
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTabGeografia() {
-            const tab = document.getElementById('tab-geografia');
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos geográficos disponibles</h3></div>';
-                return;
-            }
-
-            tab.innerHTML = `
-                <div class="chart-card">
-                    <h3>Top 10 Estados por Ventas</h3>
-                    <div class="chart-container">
-                        <canvas id="chartEstadosVentas"></canvas>
-                    </div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Top 10 Estados por Crecimiento</h3>
-                    <div class="chart-container">
-                        <canvas id="chartEstadosCrecimiento"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <h3>Análisis por Estado</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Estado</th>
-                                <th>Ventas 2025</th>
-                                <th>Crecimiento vs 2024</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.estadosConCrecimiento.map((e, idx) => `
-                                <tr>
-                                    <td>${idx + 1}</td>
-                                    <td>${e.estado}</td>
-                                    <td>${formatCurrency(e.ventas)}</td>
-                                    <td class="${e.crecimiento >= 0 ? 'trend up' : 'trend down'}">
-                                        ${e.crecimiento >= 0 ? '↗' : '↘'} ${Math.abs(e.crecimiento).toFixed(1)}%
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            setTimeout(() => {
-                createEstadosVentasChart();
-                createEstadosCrecimientoChart();
-            }, 100);
-        }
-
-        function createEstadosVentasChart() {
-            const ctx = document.getElementById('chartEstadosVentas');
-            if (!ctx) return;
-            if (charts.estadosVentas) charts.estadosVentas.destroy();
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.estadosConCrecimiento
-                .sort((a, b) => b.ventas - a.ventas)
-                .slice(0, 10);
-
-            charts.estadosVentas = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(e => e.estado),
-                    datasets: [{
-                        label: 'Ventas',
-                        data: top10.map(e => e.ventas),
-                        backgroundColor: '#5e72e4'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createEstadosCrecimientoChart() {
-            const ctx = document.getElementById('chartEstadosCrecimiento');
-            if (!ctx) return;
-            if (charts.estadosCrecimiento) charts.estadosCrecimiento.destroy();
-
-            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
-                return;
-            }
-
-            const top10 = analytics.estadosConCrecimiento.slice(0, 10);
-
-            charts.estadosCrecimiento = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(e => e.estado),
-                    datasets: [{
-                        label: 'Crecimiento %',
-                        data: top10.map(e => e.crecimiento),
-                        backgroundColor: top10.map(e => e.crecimiento >= 0 ? '#10b981' : '#ef4444')
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            ticks: { callback: value => value + '%' }
-                        }
-                    }
-                }
-            });
+            tab.innerHTML = html;
         }
 
         function showError(message) {
             const errorSection = document.getElementById('errorSection');
-            errorSection.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            errorSection.innerHTML = '<div class="error"><strong>Error:</strong> ' + message + '</div>';
             errorSection.style.display = 'block';
         }
 
-        msalInstance.handleRedirectPromise().then(response => {
+        msalInstance.handleRedirectPromise().then(function(response) {
             if (response) {
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('userName').textContent = response.account.name;
