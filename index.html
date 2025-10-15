@@ -121,6 +121,14 @@
             margin-bottom: 20px;
         }
         .success-card h3 { color: #065f46; margin-bottom: 10px; }
+        .warning-card {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .warning-card h3 { color: #92400e; margin-bottom: 10px; }
         .charts {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
@@ -135,7 +143,6 @@
             min-height: 400px;
         }
         .chart-card h3 { color: #333; margin-bottom: 20px; }
-        .chart-container { height: 300px; position: relative; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -159,18 +166,34 @@
         .badge.Leal { background: #dcfce7; color: #166534; }
         .badge.Ocasional { background: #fef3c7; color: #92400e; }
         .badge.Riesgo { background: #fee2e2; color: #991b1b; }
+        .badge.A { background: #dcfce7; color: #166534; }
+        .badge.B { background: #fef3c7; color: #92400e; }
+        .badge.C { background: #fee2e2; color: #991b1b; }
+        .status-indicator {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            margin: 0 auto 20px;
+        }
+        .status-indicator.good { background: #dcfce7; }
+        .status-indicator.warning { background: #fef3c7; }
+        .status-indicator.bad { background: #fee2e2; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- PASO 1: PANTALLA DE LOGIN -->
+        <!-- PANTALLA DE LOGIN -->
         <div id="loginCard" class="card" style="text-align: center; max-width: 500px; margin: 100px auto;">
             <h1>🔐 Dashboard CEO - LXA</h1>
             <p style="margin: 20px 0;">Inicia sesión con tu cuenta de Microsoft</p>
             <button class="btn" onclick="login()">Iniciar Sesión con Microsoft</button>
         </div>
 
-        <!-- PASO 2: DASHBOARD PRINCIPAL -->
+        <!-- DASHBOARD PRINCIPAL -->
         <div id="dashboard" class="hidden">
             <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
@@ -212,6 +235,8 @@
                 <div class="tab" onclick="switchTab('ventas')">📈 Ventas</div>
                 <div class="tab" onclick="switchTab('clientes')">👥 Clientes</div>
                 <div class="tab" onclick="switchTab('productos')">📦 Productos</div>
+                <div class="tab" onclick="switchTab('vendedores')">🎯 Vendedores</div>
+                <div class="tab" onclick="switchTab('geografia')">🗺️ Geografía</div>
             </div>
 
             <!-- CONTENIDO DE PESTAÑAS -->
@@ -219,22 +244,20 @@
             <div id="tab-ventas" class="tab-content"></div>
             <div id="tab-clientes" class="tab-content"></div>
             <div id="tab-productos" class="tab-content"></div>
+            <div id="tab-vendedores" class="tab-content"></div>
+            <div id="tab-geografia" class="tab-content"></div>
         </div>
     </div>
 
     <script>
-    // ============================================
-    // CONFIGURACIÓN: Aquí defines los parámetros del dashboard
-    // ============================================
     var CONFIG = {
-        metaCrecimiento2025: 0.15,  // 15% de crecimiento
-        diasClienteInactivo: 60,     // Días para considerar cliente inactivo
-        topClientes: 10              // Cuántos clientes top mostrar
+        metaCrecimiento2025: 0.15,
+        diasClienteInactivo: 60,
+        topClientes: 10,
+        umbralCaidaVendedor: 0.20,
+        umbralCaidaProducto: 0.30
     };
 
-    // ============================================
-    // PASO 1: CONFIGURACIÓN DE MICROSOFT AUTHENTICATION (MSAL)
-    // ============================================
     var msalConfig = {
         auth: {
             clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
@@ -244,16 +267,11 @@
     };
 
     var msalInstance = new msal.PublicClientApplication(msalConfig);
-    
-    // Variables globales para almacenar datos
-    var allData = [];        // Todos los datos del Excel
-    var filteredData = [];   // Datos filtrados por año/mes
-    var analytics = {};      // Métricas calculadas
-    var charts = {};         // Gráficas de Chart.js
+    var allData = [];
+    var filteredData = [];
+    var analytics = {};
+    var charts = {};
 
-    // ============================================
-    // PASO 2: FUNCIONES DE AUTENTICACIÓN
-    // ============================================
     function login() {
         msalInstance.loginPopup({
             scopes: ['Files.Read', 'User.Read']
@@ -261,10 +279,7 @@
             document.getElementById('loginCard').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
             document.getElementById('userInfo').textContent = 'Usuario: ' + response.account.name;
-            
-            // Mostrar mensaje de carga
             document.getElementById('tab-scorecard').innerHTML = '<div class="card"><h3>Cargando datos...</h3><p>Por favor espera mientras se cargan los datos desde SharePoint.</p></div>';
-            
             loadData();
         }).catch(function(error) {
             alert('Error al iniciar sesión: ' + error);
@@ -275,9 +290,6 @@
         msalInstance.logoutPopup();
     }
 
-    // ============================================
-    // PASO 3: CARGAR DATOS DESDE SHAREPOINT
-    // ============================================
     function loadData() {
         var accounts = msalInstance.getAllAccounts();
         if (accounts.length === 0) {
@@ -285,21 +297,17 @@
             return;
         }
 
-        // Obtener token de acceso
         msalInstance.acquireTokenSilent({
             scopes: ['Files.Read'],
             account: accounts[0]
         }).then(function(response) {
             console.log('Token obtenido correctamente');
             var token = response.accessToken;
-            
-            // URL del archivo de SharePoint
             var sharingUrl = 'https://laidealmx-my.sharepoint.com/:x:/g/personal/carlosc_laideal_com_mx/EY8QlfTcVY9Kq3TQk3XcDusB6QsET2u1DfBFDnclSLBhXw';
             var encodedUrl = 'u!' + btoa(sharingUrl).replace(/=/g, '').replace(/\//g, '_').replace(/\+/g, '-');
             
             console.log('Conectando a SharePoint...');
             
-            // Paso 1: Obtener metadata del archivo
             fetch('https://graph.microsoft.com/v1.0/shares/' + encodedUrl + '/driveItem', {
                 headers: { 'Authorization': 'Bearer ' + token }
             }).then(function(res) {
@@ -308,7 +316,6 @@
                 return res.json();
             }).then(function(shareData) {
                 console.log('Descargando archivo...');
-                // Paso 2: Descargar el contenido del archivo
                 return fetch('https://graph.microsoft.com/v1.0/drives/' + shareData.parentReference.driveId + '/items/' + shareData.id + '/content', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -318,7 +325,6 @@
                 return res.arrayBuffer();
             }).then(function(buffer) {
                 console.log('Procesando Excel...');
-                // Paso 3: Leer el Excel con SheetJS
                 var workbook = XLSX.read(buffer, { type: 'array' });
                 console.log('Hojas disponibles:', workbook.SheetNames);
                 
@@ -330,7 +336,6 @@
                 var jsonData = XLSX.utils.sheet_to_json(worksheet);
                 console.log('Registros encontrados:', jsonData.length);
                 
-                // Paso 4: Procesar y mostrar datos
                 processData(jsonData);
                 document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleString('es-MX');
                 console.log('Datos procesados correctamente');
@@ -340,11 +345,9 @@
                 errorMsg += '<h3 style="color: #c33;">Error al cargar datos</h3>';
                 errorMsg += '<p><strong>Mensaje:</strong> ' + error.message + '</p>';
                 errorMsg += '<p><strong>Sugerencias:</strong></p>';
-                errorMsg += '<ul>';
-                errorMsg += '<li>Verifica que la URL de SharePoint sea correcta</li>';
+                errorMsg += '<ul><li>Verifica que la URL de SharePoint sea correcta</li>';
                 errorMsg += '<li>Asegúrate de tener permisos para acceder al archivo</li>';
-                errorMsg += '<li>Revisa la consola del navegador (F12) para más detalles</li>';
-                errorMsg += '</ul></div>';
+                errorMsg += '<li>Revisa la consola del navegador (F12) para más detalles</li></ul></div>';
                 document.getElementById('tab-scorecard').innerHTML = errorMsg;
             });
         }).catch(function(error) {
@@ -353,57 +356,45 @@
         });
     }
 
-    // ============================================
-    // PASO 4: PROCESAR DATOS DEL EXCEL
-    // ============================================
     function processData(data) {
         console.log('Iniciando procesamiento de', data.length, 'registros...');
         allData = [];
         
-        // DEBUG: Ver las primeras 3 filas para entender el formato
-        console.log('=== DEBUG: Primeras 3 filas ===');
-        for (var i = 0; i < Math.min(3, data.length); i++) {
-            console.log('Fila', i, '- Salida:', data[i]['Salida'], '- Tipo:', typeof data[i]['Salida']);
-            console.log('Fila', i, '- Columnas:', Object.keys(data[i]));
-        }
-        
-        // Convertir cada fila del Excel a un formato útil
         for (var i = 0; i < data.length; i++) {
             var row = data[i];
             
-            // Parsear la fecha - maneja ambos formatos: texto y número de Excel
             var fecha = null;
             var salidaValue = row['Salida'];
             
             if (typeof salidaValue === 'string' && salidaValue.includes('/')) {
-                // Formato texto: "14/10/2025"
                 var parts = salidaValue.split('/');
                 if (parts.length === 3) {
                     fecha = new Date(parts[2], parts[1] - 1, parts[0]);
                 }
             } else if (typeof salidaValue === 'number') {
-                // Formato número de Excel (días desde 1900-01-01)
                 var excelEpoch = new Date(1899, 11, 30);
                 fecha = new Date(excelEpoch.getTime() + salidaValue * 86400000);
             } else if (salidaValue instanceof Date) {
-                // Ya es un objeto Date
                 fecha = salidaValue;
             }
             
-            // Parsear precios (remover $ y comas)
             var total = parseFloat((row['Total'] || '').toString().replace(/[$,]/g, '')) || 0;
             var subtotal = parseFloat((row['Subtotal 2'] || '').toString().replace(/[$,]/g, '')) || 0;
+            var precio = parseFloat((row['Precio'] || '').toString().replace(/[$,]/g, '')) || 0;
+            var descuento = parseFloat((row['Descuento'] || '').toString().replace(/[$,]/g, '')) || 0;
             
-            // Crear objeto de datos procesado
             if (fecha) {
                 allData.push({
                     año: fecha.getFullYear(),
                     mes: fecha.getMonth() + 1,
                     fecha: fecha,
+                    diaSemana: fecha.getDay(),
                     numFactura: row['#'] || '',
                     cliente: row['Cliente'] || '',
                     producto: row['Producto(s)'] || '',
                     cantidad: parseInt(row['Cantidad']) || 0,
+                    precio: precio,
+                    descuento: descuento,
                     subtotal: subtotal,
                     total: total,
                     vendedor: row['Vendedor'] || '',
@@ -415,7 +406,7 @@
         console.log('Datos procesados:', allData.length, 'registros válidos');
         
         if (allData.length === 0) {
-            document.getElementById('tab-scorecard').innerHTML = '<div class="card"><h3 style="color: #c33;">⚠️ No se encontraron datos válidos</h3><p>El archivo se cargó pero no contiene datos procesables. Verifica que:</p><ul><li>La columna "Salida" tenga fechas válidas</li><li>Las columnas de datos existan y tengan el formato correcto</li></ul></div>';
+            document.getElementById('tab-scorecard').innerHTML = '<div class="card"><h3 style="color: #c33;">⚠️ No se encontraron datos válidos</h3></div>';
             return;
         }
         
@@ -427,9 +418,6 @@
         console.log('Dashboard renderizado correctamente');
     }
 
-    // ============================================
-    // PASO 5: FILTROS
-    // ============================================
     function updateYearFilter() {
         var years = [];
         for (var i = 0; i < allData.length; i++) {
@@ -471,11 +459,19 @@
         renderAllTabs();
     }
 
-    // ============================================
-    // PASO 6: CALCULAR MÉTRICAS (ANALYTICS)
-    // ============================================
     function calculateAnalytics() {
-        // 1. VENTAS TOTALES Y BÁSICAS
+        calculateVentasBasicas();
+        calculateMetas();
+        calculateTendencias();
+        calculateClientes();
+        calculateProductos();
+        calculateVendedores();
+        calculateGeografia();
+        calculateProyeccion();
+        calculateAlertas();
+    }
+
+    function calculateVentasBasicas() {
         var ventasConFactura = [];
         for (var i = 0; i < filteredData.length; i++) {
             if (filteredData[i].numFactura) {
@@ -484,31 +480,20 @@
         }
         
         var totalVentas = 0;
+        var totalDescuentos = 0;
         for (var i = 0; i < ventasConFactura.length; i++) {
             totalVentas += ventasConFactura[i].total;
+            totalDescuentos += ventasConFactura[i].descuento;
         }
         
         analytics.totalVentas = totalVentas;
         analytics.numFacturas = ventasConFactura.length;
         analytics.ticketPromedio = ventasConFactura.length > 0 ? totalVentas / ventasConFactura.length : 0;
-        
-        // 2. METAS Y CRECIMIENTO
-        calculateMetas();
-        
-        // 3. ANÁLISIS DE CLIENTES
-        calculateClientes();
-        
-        // 4. ANÁLISIS DE PRODUCTOS
-        calculateProductos();
-        
-        // 5. PROYECCIÓN DEL MES
-        calculateProyeccion();
+        analytics.totalDescuentos = totalDescuentos;
+        analytics.pctDescuento = totalVentas > 0 ? (totalDescuentos / totalVentas) * 100 : 0;
     }
 
-    // Calcular metas de crecimiento
     function calculateMetas() {
-        var ventas2024 = 0;
-        var ventas2025 = 0;
         var ventasPorAño = {};
         
         for (var i = 0; i < allData.length; i++) {
@@ -516,19 +501,11 @@
                 var año = allData[i].año;
                 if (!ventasPorAño[año]) ventasPorAño[año] = 0;
                 ventasPorAño[año] += allData[i].total;
-                
-                if (año === 2024) {
-                    ventas2024 += allData[i].total;
-                } else if (año === 2025) {
-                    ventas2025 += allData[i].total;
-                }
             }
         }
         
-        console.log('Ventas por año:', ventasPorAño);
-        console.log('Ventas 2024:', ventas2024);
-        console.log('Ventas 2025:', ventas2025);
-        
+        var ventas2024 = ventasPorAño[2024] || 0;
+        var ventas2025 = ventasPorAño[2025] || 0;
         var meta2025 = ventas2024 * (1 + CONFIG.metaCrecimiento2025);
         var avance = meta2025 > 0 ? (ventas2025 / meta2025) * 100 : 0;
         var crecimiento = ventas2024 > 0 ? ((ventas2025 - ventas2024) / ventas2024) * 100 : 0;
@@ -541,9 +518,29 @@
         analytics.ventasPorAño = ventasPorAño;
     }
 
-    // Análisis de clientes
+    function calculateTendencias() {
+        var ventasPorMes = {};
+        var ventasPorDia = {};
+        
+        for (var i = 0; i < allData.length; i++) {
+            if (allData[i].numFactura) {
+                var key = allData[i].año + '-' + allData[i].mes;
+                if (!ventasPorMes[key]) ventasPorMes[key] = 0;
+                ventasPorMes[key] += allData[i].total;
+                
+                var diaSemana = allData[i].diaSemana;
+                if (!ventasPorDia[diaSemana]) ventasPorDia[diaSemana] = 0;
+                ventasPorDia[diaSemana] += allData[i].total;
+            }
+        }
+        
+        analytics.ventasPorMes = ventasPorMes;
+        analytics.ventasPorDia = ventasPorDia;
+    }
+
     function calculateClientes() {
         var clienteStats = {};
+        var clientesPorMes = {};
         
         for (var i = 0; i < filteredData.length; i++) {
             var row = filteredData[i];
@@ -552,24 +549,37 @@
                     clienteStats[row.cliente] = {
                         total: 0,
                         facturas: 0,
-                        ultimaCompra: row.fecha
+                        primeraCompra: row.fecha,
+                        ultimaCompra: row.fecha,
+                        productos: 0
                     };
                 }
                 clienteStats[row.cliente].total += row.total;
                 clienteStats[row.cliente].facturas++;
+                clienteStats[row.cliente].productos += row.cantidad;
+                
+                if (row.fecha < clienteStats[row.cliente].primeraCompra) {
+                    clienteStats[row.cliente].primeraCompra = row.fecha;
+                }
                 if (row.fecha > clienteStats[row.cliente].ultimaCompra) {
                     clienteStats[row.cliente].ultimaCompra = row.fecha;
                 }
+                
+                var mesKey = row.año + '-' + row.mes;
+                if (!clientesPorMes[mesKey]) clientesPorMes[mesKey] = new Set();
+                clientesPorMes[mesKey].add(row.cliente);
             }
         }
         
-        // Convertir a array y ordenar
         var clientesArray = [];
+        var totalVentasClientes = 0;
+        
         for (var cliente in clienteStats) {
             var stats = clienteStats[cliente];
+            totalVentasClientes += stats.total;
             var diasSinCompra = Math.floor((new Date() - stats.ultimaCompra) / (1000 * 60 * 60 * 24));
+            var esNuevo = new Date() - stats.primeraCompra < (90 * 24 * 60 * 60 * 1000);
             
-            // Segmentar cliente
             var segmento = 'Ocasional';
             if (diasSinCompra <= 30 && stats.facturas >= 5) {
                 segmento = 'VIP';
@@ -583,28 +593,42 @@
                 nombre: cliente,
                 total: stats.total,
                 facturas: stats.facturas,
+                productos: stats.productos,
+                primeraCompra: stats.primeraCompra,
                 ultimaCompra: stats.ultimaCompra,
                 diasSinCompra: diasSinCompra,
-                segmento: segmento
+                segmento: segmento,
+                esNuevo: esNuevo,
+                ticketPromedio: stats.total / stats.facturas
             });
         }
         
         clientesArray.sort(function(a, b) { return b.total - a.total; });
         
-        // Clientes inactivos
+        var acumulado = 0;
+        for (var i = 0; i < clientesArray.length; i++) {
+            acumulado += clientesArray[i].total;
+            clientesArray[i].pctAcumulado = (acumulado / totalVentasClientes) * 100;
+        }
+        
         var inactivos = [];
+        var nuevos = [];
         for (var i = 0; i < clientesArray.length; i++) {
             if (clientesArray[i].diasSinCompra > CONFIG.diasClienteInactivo) {
                 inactivos.push(clientesArray[i]);
+            }
+            if (clientesArray[i].esNuevo) {
+                nuevos.push(clientesArray[i]);
             }
         }
         
         analytics.clientes = clientesArray;
         analytics.totalClientes = clientesArray.length;
         analytics.clientesInactivos = inactivos;
+        analytics.clientesNuevos = nuevos;
+        analytics.clientesPorMes = clientesPorMes;
     }
 
-    // Análisis de productos
     function calculateProductos() {
         var productoStats = {};
         var totalVentasProductos = 0;
@@ -615,27 +639,35 @@
                 if (!productoStats[row.producto]) {
                     productoStats[row.producto] = {
                         cantidad: 0,
-                        valor: 0
+                        valor: 0,
+                        facturas: 0,
+                        ultimaVenta: row.fecha
                     };
                 }
                 productoStats[row.producto].cantidad += row.cantidad;
                 productoStats[row.producto].valor += row.subtotal;
                 totalVentasProductos += row.subtotal;
+                if (row.numFactura) productoStats[row.producto].facturas++;
+                if (row.fecha > productoStats[row.producto].ultimaVenta) {
+                    productoStats[row.producto].ultimaVenta = row.fecha;
+                }
             }
         }
         
         var productosArray = [];
         for (var producto in productoStats) {
+            var diasSinVenta = Math.floor((new Date() - productoStats[producto].ultimaVenta) / (1000 * 60 * 60 * 24));
             productosArray.push({
                 nombre: producto,
                 cantidad: productoStats[producto].cantidad,
-                valor: productoStats[producto].valor
+                valor: productoStats[producto].valor,
+                facturas: productoStats[producto].facturas,
+                diasSinVenta: diasSinVenta
             });
         }
         
         productosArray.sort(function(a, b) { return b.valor - a.valor; });
         
-        // Categorización ABC
         var acumulado = 0;
         for (var i = 0; i < productosArray.length; i++) {
             acumulado += productosArray[i].valor;
@@ -653,7 +685,79 @@
         analytics.productos = productosArray;
     }
 
-    // Proyección del mes
+    function calculateVendedores() {
+        var vendedorStats = {};
+        
+        for (var i = 0; i < filteredData.length; i++) {
+            var row = filteredData[i];
+            if (row.vendedor && row.numFactura) {
+                if (!vendedorStats[row.vendedor]) {
+                    vendedorStats[row.vendedor] = {
+                        ventas: 0,
+                        facturas: 0,
+                        productos: 0,
+                        clientes: new Set()
+                    };
+                }
+                vendedorStats[row.vendedor].ventas += row.total;
+                vendedorStats[row.vendedor].facturas++;
+                vendedorStats[row.vendedor].productos += row.cantidad;
+                vendedorStats[row.vendedor].clientes.add(row.cliente);
+            }
+        }
+        
+        var vendedoresArray = [];
+        for (var vendedor in vendedorStats) {
+            var stats = vendedorStats[vendedor];
+            vendedoresArray.push({
+                nombre: vendedor,
+                ventas: stats.ventas,
+                facturas: stats.facturas,
+                ticketPromedio: stats.ventas / stats.facturas,
+                productosPorFactura: stats.productos / stats.facturas,
+                clientesUnicos: stats.clientes.size
+            });
+        }
+        
+        vendedoresArray.sort(function(a, b) { return b.ventas - a.ventas; });
+        
+        analytics.vendedores = vendedoresArray;
+    }
+
+    function calculateGeografia() {
+        var estadoStats = {};
+        
+        for (var i = 0; i < filteredData.length; i++) {
+            var row = filteredData[i];
+            if (row.estado && row.numFactura) {
+                if (!estadoStats[row.estado]) {
+                    estadoStats[row.estado] = {
+                        ventas: 0,
+                        facturas: 0,
+                        clientes: new Set()
+                    };
+                }
+                estadoStats[row.estado].ventas += row.total;
+                estadoStats[row.estado].facturas++;
+                estadoStats[row.estado].clientes.add(row.cliente);
+            }
+        }
+        
+        var estadosArray = [];
+        for (var estado in estadoStats) {
+            estadosArray.push({
+                nombre: estado,
+                ventas: estadoStats[estado].ventas,
+                facturas: estadoStats[estado].facturas,
+                clientes: estadoStats[estado].clientes.size
+            });
+        }
+        
+        estadosArray.sort(function(a, b) { return b.ventas - a.ventas; });
+        
+        analytics.estados = estadosArray;
+    }
+
     function calculateProyeccion() {
         var now = new Date();
         var mesActual = now.getMonth() + 1;
@@ -663,7 +767,6 @@
         
         var ventasMes = 0;
         
-        // IMPORTANTE: Buscar en allData (sin filtro) para datos del mes actual
         for (var i = 0; i < allData.length; i++) {
             if (allData[i].año === añoActual && allData[i].mes === mesActual && allData[i].numFactura) {
                 ventasMes += allData[i].total;
@@ -682,13 +785,44 @@
             metaMensual: metaMensual,
             diasRestantes: diasRestantes,
             ventasNecesarias: ventasNecesarias,
+            promedioDiario: promedioDiario,
             probabilidad: metaMensual > 0 ? (proyeccion / metaMensual) * 100 : 0
         };
     }
 
-    // ============================================
-    // PASO 7: RENDERIZAR PESTAÑAS
-    // ============================================
+    function calculateAlertas() {
+        analytics.alertas = {
+            buenas: [],
+            regulares: [],
+            malas: []
+        };
+        
+        if (analytics.avanceVsMeta >= 100) {
+            analytics.alertas.buenas.push('✅ Meta anual cumplida (' + analytics.avanceVsMeta.toFixed(1) + '%)');
+        } else if (analytics.avanceVsMeta >= 80) {
+            analytics.alertas.regulares.push('⚠️ Avance del ' + analytics.avanceVsMeta.toFixed(1) + '% vs meta anual');
+        } else {
+            analytics.alertas.malas.push('🚨 Solo ' + analytics.avanceVsMeta.toFixed(1) + '% de la meta anual cumplida');
+        }
+        
+        if (analytics.crecimientoAnual > 15) {
+            analytics.alertas.buenas.push('✅ Crecimiento anual del ' + analytics.crecimientoAnual.toFixed(1) + '%');
+        } else if (analytics.crecimientoAnual > 0) {
+            analytics.alertas.regulares.push('⚠️ Crecimiento anual del ' + analytics.crecimientoAnual.toFixed(1) + '% (meta: 15%)');
+        } else {
+            analytics.alertas.malas.push('🚨 Ventas cayeron ' + Math.abs(analytics.crecimientoAnual).toFixed(1) + '% vs año anterior');
+        }
+        
+        if (analytics.clientesInactivos.length > 0) {
+            analytics.alertas.malas.push('🚨 ' + analytics.clientesInactivos.length + ' clientes inactivos (+' + CONFIG.diasClienteInactivo + ' días)');
+        }
+        
+        var top3Clientes = analytics.clientes.slice(0, 3);
+        for (var i = 0; i < top3Clientes.length; i++) {
+            analytics.alertas.buenas.push('✅ ' + top3Clientes[i].nombre + ': ' + formatCurrency(top3Clientes[i].total));
+        }
+    }
+
     function switchTab(tabName) {
         var tabs = document.querySelectorAll('.tab');
         for (var i = 0; i < tabs.length; i++) {
@@ -709,86 +843,89 @@
         renderVentas();
         renderClientes();
         renderProductos();
+        renderVendedores();
+        renderGeografia();
     }
 
     function formatCurrency(value) {
         return '$' + value.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
-    // ============================================
-    // RENDERIZAR: CEO SCORECARD
-    // ============================================
     function renderScorecard() {
         var html = '';
         
-        // Mostrar información del filtro actual
-        var selectedYear = document.getElementById('yearFilter').value;
-        var selectedMonth = document.getElementById('monthFilter').value;
-        var filtroActivo = selectedYear !== 'all' || selectedMonth !== 'all';
-        
-        // Mostrar resumen de años disponibles
-        if (analytics.ventasPorAño) {
-            html += '<div class="card" style="background: #f0f9ff; border-left: 4px solid #3b82f6;">';
-            html += '<h3 style="margin-bottom: 10px;">📊 Datos Disponibles por Año</h3>';
-            html += '<div style="display: flex; gap: 20px; flex-wrap: wrap;">';
-            for (var año in analytics.ventasPorAño) {
-                html += '<div><strong>' + año + ':</strong> ' + formatCurrency(analytics.ventasPorAño[año]) + '</div>';
-            }
-            html += '</div></div>';
+        var status = 'good';
+        var statusIcon = '😊';
+        if (analytics.avanceVsMeta < 80) {
+            status = 'bad';
+            statusIcon = '😟';
+        } else if (analytics.avanceVsMeta < 100) {
+            status = 'warning';
+            statusIcon = '😐';
         }
         
-        if (filtroActivo) {
-            html += '<div class="card" style="background: #fffbeb; border-left: 4px solid #f59e0b;">';
-            html += '<p><strong>📌 Filtro activo:</strong> Mostrando datos de ';
-            if (selectedYear !== 'all') html += 'año ' + selectedYear + ' ';
-            if (selectedMonth !== 'all') {
-                var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                html += meses[parseInt(selectedMonth) - 1];
+        html += '<div class="card" style="text-align: center;">';
+        html += '<div class="status-indicator ' + status + '">' + statusIcon + '</div>';
+        html += '<h2>Estado General del Negocio</h2>';
+        html += '<p style="font-size: 1.5em; margin: 10px 0;"><strong>' + analytics.avanceVsMeta.toFixed(1) + '%</strong> de la meta anual cumplida</p>';
+        html += '</div>';
+        
+        if (analytics.alertas.buenas.length > 0) {
+            html += '<div class="success-card"><h3>✅ Lo que va bien</h3>';
+            for (var i = 0; i < Math.min(3, analytics.alertas.buenas.length); i++) {
+                html += '<div>' + analytics.alertas.buenas[i] + '</div>';
             }
-            html += '. Para ver todos los datos, selecciona "Todos" en ambos filtros.</p></div>';
+            html += '</div>';
         }
         
-        // Proyección del mes
+        if (analytics.alertas.malas.length > 0) {
+            html += '<div class="alert-card"><h3>⚠️ Necesita atención</h3>';
+            for (var i = 0; i < analytics.alertas.malas.length; i++) {
+                html += '<div class="alert-item">' + analytics.alertas.malas[i] + '</div>';
+            }
+            html += '</div>';
+        }
+        
+        if (analytics.alertas.regulares.length > 0) {
+            html += '<div class="warning-card"><h3>📊 Observaciones</h3>';
+            for (var i = 0; i < analytics.alertas.regulares.length; i++) {
+                html += '<div>' + analytics.alertas.regulares[i] + '</div>';
+            }
+            html += '</div>';
+        }
+        
         var p = analytics.proyeccion;
         html += '<div class="projection-card">';
-        html += '<h2>🎯 Proyección del Mes (Octubre 2025)</h2>';
+        html += '<h2>🎯 Proyección del Mes Actual</h2>';
         html += '<div class="projection-grid">';
         html += '<div class="projection-item"><h4>Meta Mensual</h4><div class="value">' + formatCurrency(p.metaMensual) + '</div></div>';
         html += '<div class="projection-item"><h4>Ventas a la Fecha</h4><div class="value">' + formatCurrency(p.ventasMes) + '</div></div>';
         html += '<div class="projection-item"><h4>Proyección</h4><div class="value">' + formatCurrency(p.proyeccion) + '</div><div>' + p.probabilidad.toFixed(0) + '% probabilidad</div></div>';
-        html += '<div class="projection-item"><h4>Días Restantes</h4><div class="value">' + p.diasRestantes + '</div><div>' + formatCurrency(p.ventasNecesarias) + '/día</div></div>';
+        html += '<div class="projection-item"><h4>Promedio Diario</h4><div class="value">' + formatCurrency(p.promedioDiario) + '</div><div>' + p.diasRestantes + ' días restantes</div></div>';
         html += '</div></div>';
         
-        // KPIs principales
         html += '<div class="kpis">';
-        html += '<div class="kpi-card"><h3>Ventas Totales' + (filtroActivo ? ' (filtradas)' : '') + '</h3><div class="value">' + formatCurrency(analytics.totalVentas) + '</div></div>';
+        html += '<div class="kpi-card"><h3>Ventas Totales</h3><div class="value">' + formatCurrency(analytics.totalVentas) + '</div></div>';
         html += '<div class="kpi-card"><h3>Facturas</h3><div class="value">' + analytics.numFacturas + '</div></div>';
         html += '<div class="kpi-card"><h3>Ticket Promedio</h3><div class="value">' + formatCurrency(analytics.ticketPromedio) + '</div></div>';
         html += '<div class="kpi-card"><h3>Total Clientes</h3><div class="value">' + analytics.totalClientes + '</div></div>';
         html += '</div>';
         
-        // Metas (siempre desde allData)
         html += '<div class="kpis">';
         html += '<div class="kpi-card"><h3>Ventas 2024</h3><div class="value">' + formatCurrency(analytics.ventas2024) + '</div></div>';
         html += '<div class="kpi-card"><h3>Meta 2025 (+15%)</h3><div class="value">' + formatCurrency(analytics.meta2025) + '</div></div>';
         html += '<div class="kpi-card"><h3>Ventas 2025</h3><div class="value">' + formatCurrency(analytics.ventas2025) + '</div></div>';
-        html += '<div class="kpi-card"><h3>Avance vs Meta</h3><div class="value">' + analytics.avanceVsMeta.toFixed(1) + '%</div><div class="trend ' + (analytics.avanceVsMeta >= 100 ? 'up' : 'down') + '">' + (analytics.avanceVsMeta >= 100 ? '✓ Meta cumplida' : '⚠ Por debajo') + '</div></div>';
+        html += '<div class="kpi-card"><h3>Crecimiento Anual</h3><div class="value ' + (analytics.crecimientoAnual >= 0 ? 'trend up' : 'trend down') + '">' + analytics.crecimientoAnual.toFixed(1) + '%</div></div>';
         html += '</div>';
         
-        // Alertas
-        if (analytics.clientesInactivos.length > 0) {
-            html += '<div class="alert-card"><h3>⚠️ Clientes Inactivos (' + CONFIG.diasClienteInactivo + '+ días)</h3>';
-            for (var i = 0; i < Math.min(5, analytics.clientesInactivos.length); i++) {
-                var c = analytics.clientesInactivos[i];
-                html += '<div class="alert-item">• ' + c.nombre + ' - ' + c.diasSinCompra + ' días sin comprar - ' + formatCurrency(c.total) + ' en ventas</div>';
-            }
-            html += '</div>';
-        }
-        
-        // Gráficas
         html += '<div class="charts">';
         html += '<div class="chart-card"><h3>Top 5 Clientes</h3><canvas id="chartTopClientes"></canvas></div>';
         html += '<div class="chart-card"><h3>Top 5 Productos</h3><canvas id="chartTopProductos"></canvas></div>';
+        html += '</div>';
+        
+        html += '<div class="charts">';
+        html += '<div class="chart-card"><h3>Concentración de Clientes (Regla 80/20)</h3><canvas id="chartConcentracion"></canvas></div>';
+        html += '<div class="chart-card"><h3>Ventas por Día de la Semana</h3><canvas id="chartDiasSemana"></canvas></div>';
         html += '</div>';
         
         document.getElementById('tab-scorecard').innerHTML = html;
@@ -796,6 +933,170 @@
         setTimeout(function() {
             createTopClientesChart();
             createTopProductosChart();
+            createConcentracionChart();
+            createDiasSemanChart();
+        }, 100);
+    }
+
+    function renderVentas() {
+        var html = '<div class="kpis">';
+        html += '<div class="kpi-card"><h3>Crecimiento Anual</h3><div class="value ' + (analytics.crecimientoAnual >= 0 ? 'trend up' : 'trend down') + '">' + analytics.crecimientoAnual.toFixed(1) + '%</div></div>';
+        html += '<div class="kpi-card"><h3>Total Descuentos</h3><div class="value">' + formatCurrency(analytics.totalDescuentos) + '</div><div class="trend">(' + analytics.pctDescuento.toFixed(1) + '% de ventas)</div></div>';
+        html += '<div class="kpi-card"><h3>Clientes Nuevos</h3><div class="value">' + analytics.clientesNuevos.length + '</div></div>';
+        html += '</div>';
+        
+        html += '<div class="charts">';
+        html += '<div class="chart-card"><h3>Evolución 2024 vs 2025</h3><canvas id="chartEvolucion"></canvas></div>';
+        html += '<div class="chart-card"><h3>Tendencia Mensual 2025</h3><canvas id="chartTendencia2025"></canvas></div>';
+        html += '</div>';
+        
+        document.getElementById('tab-ventas').innerHTML = html;
+        
+        setTimeout(function() {
+            createEvolucionChart();
+            createTendencia2025Chart();
+        }, 100);
+    }
+
+    function renderClientes() {
+        var html = '<div class="kpis">';
+        
+        var segmentos = {VIP: 0, Leal: 0, Ocasional: 0, Riesgo: 0};
+        for (var i = 0; i < analytics.clientes.length; i++) {
+            segmentos[analytics.clientes[i].segmento]++;
+        }
+        
+        html += '<div class="kpi-card"><h3>Clientes VIP</h3><div class="value">' + segmentos.VIP + '</div></div>';
+        html += '<div class="kpi-card"><h3>Clientes Leales</h3><div class="value">' + segmentos.Leal + '</div></div>';
+        html += '<div class="kpi-card"><h3>Ocasionales</h3><div class="value">' + segmentos.Ocasional + '</div></div>';
+        html += '<div class="kpi-card"><h3>En Riesgo</h3><div class="value">' + segmentos.Riesgo + '</div></div>';
+        html += '</div>';
+        
+        html += '<div class="card"><h3>Top 20 Clientes</h3><table>';
+        html += '<thead><tr><th>Cliente</th><th>Segmento</th><th>Ventas</th><th>Facturas</th><th>Ticket Prom.</th><th>% Acumulado</th><th>Última Compra</th></tr></thead>';
+        html += '<tbody>';
+        
+        for (var i = 0; i < Math.min(20, analytics.clientes.length); i++) {
+            var c = analytics.clientes[i];
+            html += '<tr>';
+            html += '<td>' + c.nombre + '</td>';
+            html += '<td><span class="badge ' + c.segmento + '">' + c.segmento + '</span></td>';
+            html += '<td>' + formatCurrency(c.total) + '</td>';
+            html += '<td>' + c.facturas + '</td>';
+            html += '<td>' + formatCurrency(c.ticketPromedio) + '</td>';
+            html += '<td>' + c.pctAcumulado.toFixed(1) + '%</td>';
+            html += '<td>' + c.ultimaCompra.toLocaleDateString('es-MX') + '</td>';
+            html += '</tr>';
+        }
+        
+        html += '</tbody></table></div>';
+        
+        document.getElementById('tab-clientes').innerHTML = html;
+    }
+
+    function renderProductos() {
+        var categorias = {A: 0, B: 0, C: 0};
+        for (var i = 0; i < analytics.productos.length; i++) {
+            categorias[analytics.productos[i].categoria]++;
+        }
+        
+        var html = '<div class="kpis">';
+        html += '<div class="kpi-card"><h3>Productos A (Top 80%)</h3><div class="value">' + categorias.A + '</div></div>';
+        html += '<div class="kpi-card"><h3>Productos B (80-95%)</h3><div class="value">' + categorias.B + '</div></div>';
+        html += '<div class="kpi-card"><h3>Productos C (95-100%)</h3><div class="value">' + categorias.C + '</div></div>';
+        html += '<div class="kpi-card"><h3>Total Productos</h3><div class="value">' + analytics.productos.length + '</div></div>';
+        html += '</div>';
+        
+        html += '<div class="card"><h3>Top 30 Productos</h3><table>';
+        html += '<thead><tr><th>Producto</th><th>Categoría ABC</th><th>Cantidad</th><th>Valor</th><th>Facturas</th><th>Días sin Venta</th></tr></thead>';
+        html += '<tbody>';
+        
+        for (var i = 0; i < Math.min(30, analytics.productos.length); i++) {
+            var p = analytics.productos[i];
+            html += '<tr>';
+            html += '<td>' + p.nombre + '</td>';
+            html += '<td><span class="badge ' + p.categoria + '">' + p.categoria + '</span></td>';
+            html += '<td>' + p.cantidad + '</td>';
+            html += '<td>' + formatCurrency(p.valor) + '</td>';
+            html += '<td>' + p.facturas + '</td>';
+            html += '<td>' + p.diasSinVenta + '</td>';
+            html += '</tr>';
+        }
+        
+        html += '</tbody></table></div>';
+        
+        document.getElementById('tab-productos').innerHTML = html;
+    }
+
+    function renderVendedores() {
+        var html = '<div class="kpis">';
+        html += '<div class="kpi-card"><h3>Total Vendedores</h3><div class="value">' + analytics.vendedores.length + '</div></div>';
+        
+        if (analytics.vendedores.length > 0) {
+            var topVendedor = analytics.vendedores[0];
+            html += '<div class="kpi-card"><h3>Top Vendedor</h3><div class="value" style="font-size: 1.5em;">' + topVendedor.nombre + '</div><div class="trend">' + formatCurrency(topVendedor.ventas) + '</div></div>';
+        }
+        html += '</div>';
+        
+        html += '<div class="card"><h3>Desempeño de Vendedores</h3><table>';
+        html += '<thead><tr><th>Vendedor</th><th>Ventas</th><th>Facturas</th><th>Ticket Promedio</th><th>Productos/Factura</th><th>Clientes Únicos</th></tr></thead>';
+        html += '<tbody>';
+        
+        for (var i = 0; i < analytics.vendedores.length; i++) {
+            var v = analytics.vendedores[i];
+            html += '<tr>';
+            html += '<td>' + v.nombre + '</td>';
+            html += '<td>' + formatCurrency(v.ventas) + '</td>';
+            html += '<td>' + v.facturas + '</td>';
+            html += '<td>' + formatCurrency(v.ticketPromedio) + '</td>';
+            html += '<td>' + v.productosPorFactura.toFixed(1) + '</td>';
+            html += '<td>' + v.clientesUnicos + '</td>';
+            html += '</tr>';
+        }
+        
+        html += '</tbody></table></div>';
+        
+        html += '<div class="chart-card"><h3>Comparativo de Vendedores</h3><canvas id="chartVendedores"></canvas></div>';
+        
+        document.getElementById('tab-vendedores').innerHTML = html;
+        
+        setTimeout(function() {
+            createVendedoresChart();
+        }, 100);
+    }
+
+    function renderGeografia() {
+        var html = '<div class="kpis">';
+        html += '<div class="kpi-card"><h3>Total Estados</h3><div class="value">' + analytics.estados.length + '</div></div>';
+        
+        if (analytics.estados.length > 0) {
+            var topEstado = analytics.estados[0];
+            html += '<div class="kpi-card"><h3>Top Estado</h3><div class="value" style="font-size: 1.5em;">' + topEstado.nombre + '</div><div class="trend">' + formatCurrency(topEstado.ventas) + '</div></div>';
+        }
+        html += '</div>';
+        
+        html += '<div class="card"><h3>Ventas por Estado</h3><table>';
+        html += '<thead><tr><th>Estado</th><th>Ventas</th><th>Facturas</th><th>Clientes</th></tr></thead>';
+        html += '<tbody>';
+        
+        for (var i = 0; i < analytics.estados.length; i++) {
+            var e = analytics.estados[i];
+            html += '<tr>';
+            html += '<td>' + e.nombre + '</td>';
+            html += '<td>' + formatCurrency(e.ventas) + '</td>';
+            html += '<td>' + e.facturas + '</td>';
+            html += '<td>' + e.clientes + '</td>';
+            html += '</tr>';
+        }
+        
+        html += '</tbody></table></div>';
+        
+        html += '<div class="chart-card"><h3>Top 10 Estados por Ventas</h3><canvas id="chartEstados"></canvas></div>';
+        
+        document.getElementById('tab-geografia').innerHTML = html;
+        
+        setTimeout(function() {
+            createEstadosChart();
         }, 100);
     }
 
@@ -885,22 +1186,94 @@
         });
     }
 
-    // ============================================
-    // RENDERIZAR: VENTAS
-    // ============================================
-    function renderVentas() {
-        var html = '<div class="kpis">';
-        html += '<div class="kpi-card"><h3>Crecimiento Anual</h3><div class="value ' + (analytics.crecimientoAnual >= 0 ? 'trend up' : 'trend down') + '">' + analytics.crecimientoAnual.toFixed(1) + '%</div></div>';
-        html += '</div>';
+    function createConcentracionChart() {
+        var ctx = document.getElementById('chartConcentracion');
+        if (!ctx) return;
         
-        html += '<div class="chart-card"><h3>Evolución 2024 vs 2025</h3>';
-        html += '<canvas id="chartEvolucion"></canvas></div>';
+        var top20 = analytics.clientes.slice(0, Math.ceil(analytics.clientes.length * 0.2));
+        var labels = [];
+        var pcts = [];
         
-        document.getElementById('tab-ventas').innerHTML = html;
+        for (var i = 0; i < Math.min(10, top20.length); i++) {
+            labels.push(top20[i].nombre);
+            pcts.push(top20[i].pctAcumulado);
+        }
         
-        setTimeout(function() {
-            createEvolucionChart();
-        }, 100);
+        if (charts.concentracion) charts.concentracion.destroy();
+        
+        charts.concentracion = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '% Acumulado',
+                    data: pcts,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createDiasSemanChart() {
+        var ctx = document.getElementById('chartDiasSemana');
+        if (!ctx) return;
+        
+        var dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        var data = [];
+        
+        for (var i = 0; i < 7; i++) {
+            data.push(analytics.ventasPorDia[i] || 0);
+        }
+        
+        if (charts.diasSemana) charts.diasSemana.destroy();
+        
+        charts.diasSemana = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dias,
+                datasets: [{
+                    label: 'Ventas',
+                    data: data,
+                    backgroundColor: '#8b5cf6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     function createEvolucionChart() {
@@ -960,72 +1333,139 @@
         });
     }
 
-    // ============================================
-    // RENDERIZAR: CLIENTES
-    // ============================================
-    function renderClientes() {
-        var html = '<div class="kpis">';
+    function createTendencia2025Chart() {
+        var ctx = document.getElementById('chartTendencia2025');
+        if (!ctx) return;
         
-        // Contar segmentos
-        var segmentos = {VIP: 0, Leal: 0, Ocasional: 0, Riesgo: 0};
-        for (var i = 0; i < analytics.clientes.length; i++) {
-            segmentos[analytics.clientes[i].segmento]++;
+        var meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        var ventas = [0,0,0,0,0,0,0,0,0,0,0,0];
+        
+        for (var i = 0; i < allData.length; i++) {
+            if (allData[i].numFactura && allData[i].año === 2025) {
+                ventas[allData[i].mes - 1] += allData[i].total;
+            }
         }
         
-        html += '<div class="kpi-card"><h3>Clientes VIP</h3><div class="value">' + segmentos.VIP + '</div></div>';
-        html += '<div class="kpi-card"><h3>Clientes Leales</h3><div class="value">' + segmentos.Leal + '</div></div>';
-        html += '<div class="kpi-card"><h3>Ocasionales</h3><div class="value">' + segmentos.Ocasional + '</div></div>';
-        html += '<div class="kpi-card"><h3>En Riesgo</h3><div class="value">' + segmentos.Riesgo + '</div></div>';
-        html += '</div>';
+        if (charts.tendencia2025) charts.tendencia2025.destroy();
         
-        // Tabla de clientes
-        html += '<div class="card"><h3>Top 20 Clientes</h3><table>';
-        html += '<thead><tr><th>Cliente</th><th>Segmento</th><th>Ventas</th><th>Facturas</th><th>Última Compra</th><th>Días</th></tr></thead>';
-        html += '<tbody>';
-        
-        for (var i = 0; i < Math.min(20, analytics.clientes.length); i++) {
-            var c = analytics.clientes[i];
-            html += '<tr>';
-            html += '<td>' + c.nombre + '</td>';
-            html += '<td><span class="badge ' + c.segmento + '">' + c.segmento + '</span></td>';
-            html += '<td>' + formatCurrency(c.total) + '</td>';
-            html += '<td>' + c.facturas + '</td>';
-            html += '<td>' + c.ultimaCompra.toLocaleDateString('es-MX') + '</td>';
-            html += '<td>' + c.diasSinCompra + '</td>';
-            html += '</tr>';
-        }
-        
-        html += '</tbody></table></div>';
-        
-        document.getElementById('tab-clientes').innerHTML = html;
+        charts.tendencia2025 = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: '2025',
+                    data: ventas,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
-    // ============================================
-    // RENDERIZAR: PRODUCTOS
-    // ============================================
-    function renderProductos() {
-        var html = '<div class="card"><h3>Top 20 Productos</h3><table>';
-        html += '<thead><tr><th>Producto</th><th>Categoría</th><th>Cantidad</th><th>Valor</th></tr></thead>';
-        html += '<tbody>';
+    function createVendedoresChart() {
+        var ctx = document.getElementById('chartVendedores');
+        if (!ctx) return;
         
-        for (var i = 0; i < Math.min(20, analytics.productos.length); i++) {
-            var p = analytics.productos[i];
-            html += '<tr>';
-            html += '<td>' + p.nombre + '</td>';
-            html += '<td><span class="badge">' + p.categoria + '</span></td>';
-            html += '<td>' + p.cantidad + '</td>';
-            html += '<td>' + formatCurrency(p.valor) + '</td>';
-            html += '</tr>';
+        var labels = [];
+        var data = [];
+        
+        for (var i = 0; i < Math.min(10, analytics.vendedores.length); i++) {
+            labels.push(analytics.vendedores[i].nombre);
+            data.push(analytics.vendedores[i].ventas);
         }
         
-        html += '</tbody></table></div>';
+        if (charts.vendedores) charts.vendedores.destroy();
         
-        document.getElementById('tab-productos').innerHTML = html;
+        charts.vendedores = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Ventas',
+                    data: data,
+                    backgroundColor: '#ec4899'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
-    // ============================================
-    // INICIALIZACIÓN: Detectar si ya hay sesión activa
-    // ============================================
+    function createEstadosChart() {
+        var ctx = document.getElementById('chartEstados');
+        if (!ctx) return;
+        
+        var labels = [];
+        var data = [];
+        
+        for (var i = 0; i < Math.min(10, analytics.estados.length); i++) {
+            labels.push(analytics.estados[i].nombre);
+            data.push(analytics.estados[i].ventas);
+        }
+        
+        if (charts.estados) charts.estados.destroy();
+        
+        charts.estados = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Ventas',
+                    data: data,
+                    backgroundColor: '#06b6d4'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     msalInstance.handleRedirectPromise().then(function(response) {
         if (response) {
             document.getElementById('loginCard').classList.add('hidden');
