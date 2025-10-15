@@ -1,654 +1,84 @@
-<!--
-LXA CEO Dashboard — Migración completa a ChatGPT
-
-Este documento contiene:
-1) Plan de migración paso a paso
-2) Requisitos (Azure AD, permisos, seguridad)
-3) Estructura del repo
-4) Variables de configuración
-5) Código HTML/JS listo para GitHub Pages (msal-browser + Microsoft Graph + SheetJS + Chart.js)
-6) Parser robusto de Excel (incluye fechas seriales, nombres de columnas variables, tolerancia de hoja)
-7) Checklist de despliegue y prueba
-
-► Usa este archivo como index.html en tu repositorio (GitHub Pages)
-► Sustituye los valores de CONFIG y MSAL (clientId/tenantId/shareUrl)
-
--->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LXA — CEO Dashboard</title>
-  <meta name="description" content="Dashboard de ventas LXA con login Microsoft, lectura segura desde SharePoint (solo lectura)." />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <meta charset="utf-8" />
+  <title>LXA — Prueba de Login MSAL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- MSAL (defer) -->
   <script defer src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js"></script>
   <style>
-    :root{
-      --primary:#5e72e4;--accent:#10b981;--bg:#f3f4f6;--card:#fff;--muted:#6b7280
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;color:#111}
-    .container{max-width:1600px;margin:0 auto;padding:24px}
-    .card{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:24px;margin-bottom:16px}
-    .header{display:flex;justify-content:space-between;gap:16px;align-items:center}
-    .btn{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-weight:600;cursor:pointer}
-    .btn.secondary{background:#111}
-    .btn.small{padding:8px 12px;font-size:.9rem}
-    .stack{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-    .filters select{padding:10px 14px;border:2px solid #e5e7eb;border-radius:10px}
-    .tabs{display:flex;gap:8px;overflow:auto}
-    .tab{padding:10px 16px;border-radius:10px;font-weight:600;cursor:pointer;white-space:nowrap}
-    .tab.active{background:var(--primary);color:#fff}
-    .grid{display:grid;gap:16px}
-    @media(min-width:900px){.grid.cols-2{grid-template-columns:1fr 1fr}.grid.cols-3{grid-template-columns:repeat(3,1fr)}}
-    .kpi{padding:18px;border-radius:14px;background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.06)}
-    .kpi h4{font-size:.85rem;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
-    .kpi .v{font-size:1.8rem;font-weight:800}
-    .note{font-size:.9rem;color:#374151}
-    .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:.8rem}
-    .VIP{background:#ddd6fe;color:#5b21b6}
-    .Leal{background:#dcfce7;color:#166534}
-    .Ocasional{background:#fef3c7;color:#92400e}
-    .Riesgo{background:#fee2e2;color:#991b1b}
-    .muted{color:var(--muted)}
-    .hidden{display:none}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}
-    th{background:#f9fafb}
-    .warn{background:#fffbeb;border-left:4px solid #f59e0b;padding:14px;border-radius:12px}
-    .ok{background:#f0fdf4;border-left:4px solid #10b981;padding:14px;border-radius:12px}
-    .error{background:#fef2f2;border-left:4px solid #ef4444;padding:14px;border-radius:12px}
-    .projection{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:20px;border-radius:16px}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f7fb}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:24px;max-width:520px;width:92%}
+    .btn{background:#5e72e4;color:#fff;border:none;border-radius:8px;padding:12px 18px;font-weight:600;cursor:pointer}
+    .row{margin-top:12px}
+    pre{background:#0b1020;color:#d1e7ff;padding:12px;border-radius:8px;overflow:auto;max-height:300px}
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- LOGIN / HEADER -->
-    <div id="loginCard" class="card" style="max-width:540px;margin:10vh auto;text-align:center">
-      <h1>🔐 LXA — CEO Dashboard</h1>
-      <p class="muted" style="margin:10px 0 18px">Inicia sesión con tu cuenta Microsoft para ver el dashboard</p>
-      <button class="btn" onclick="login()">Iniciar sesión con Microsoft</button>
-      <div class="note" style="margin-top:12px">Permisos solicitados: <b>Files.Read</b> y <b>User.Read</b> (solo lectura)</div>
-    </div>
-
-    <div id="app" class="hidden">
-      <div class="card header">
-        <div>
-          <h2>📊 LXA — CEO Dashboard</h2>
-          <div id="userInfo" class="muted"></div>
-          <div id="lastUpdate" class="muted"></div>
-        </div>
-        <div class="stack">
-          <button class="btn small" onclick="loadData()">🔄 Actualizar</button>
-          <button class="btn secondary small" onclick="logout()">Cerrar sesión</button>
-        </div>
-      </div>
-
-      <!-- CONFIG BAR -->
-      <div class="card filters stack">
-        <div class="stack">
-          <label><strong>Año:</strong></label>
-          <select id="yearFilter" onchange="applyFilters()"><option value="all">Todos</option></select>
-          <label><strong>Mes:</strong></label>
-          <select id="monthFilter" onchange="applyFilters()">
-            <option value="all">Todos</option>
-            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option>
-            <option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option>
-            <option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
-          </select>
-        </div>
-        <div class="stack">
-          <label><strong>Incluir ventas sin folio (#):</strong></label>
-          <select id="includeNoFolio" onchange="applyFilters()">
-            <option value="no" selected>No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- TABS -->
-      <div class="card tabs">
-        <div class="tab active" data-tab="score" onclick="switchTab(event,'score')">🎯 Scorecard</div>
-        <div class="tab" data-tab="ventas" onclick="switchTab(event,'ventas')">📈 Ventas</div>
-        <div class="tab" data-tab="clientes" onclick="switchTab(event,'clientes')">👥 Clientes</div>
-        <div class="tab" data-tab="productos" onclick="switchTab(event,'productos')">📦 Productos</div>
-      </div>
-
-      <div id="tab-score" class="tab-pane card"></div>
-      <div id="tab-ventas" class="tab-pane hidden card"></div>
-      <div id="tab-clientes" class="tab-pane hidden card"></div>
-      <div id="tab-productos" class="tab-pane hidden card"></div>
-    </div>
+  <div class="card">
+    <h2>🔐 LXA — Prueba de Login</h2>
+    <p>Esta página sólo prueba el flujo de inicio de sesión con Microsoft (MSAL). Si esto funciona, integramos el dashboard completo.</p>
+    <div class="row"><button id="btnLogin" class="btn">Iniciar sesión con Microsoft</button></div>
+    <div class="row"><button id="btnLogout" class="btn" style="background:#111">Cerrar sesión</button></div>
+    <div class="row"><small id="status">Estado: listo</small></div>
+    <div class="row"><pre id="out">(sin datos)</pre></div>
   </div>
 
   <script>
-  // ========================
-  // 1) CONFIGURACIÓN GLOBAL
-  // ========================
-  const CONFIG = {
-    // ► Edita aquí
-    shareUrl: 'https://laidealmx-my.sharepoint.com/:x:/g/personal/carlosc_laideal_com_mx/EY8QlfTcVY9Kq3TQk3XcDusB6QsET2u1DfBFDnclSLBhXw?e=PfD0RP',
-    sheetName: 'LXA', // nombre esperado de la hoja
-    metaCrecimiento2025: 0.15, // 15%
-    diasClienteInactivo: 60,
-    topClientes: 10,
-    // Mapeo tolerante de columnas (acepta varios encabezados posibles)
-    columns: {
-      fecha: ['Salida','Fecha','Date'],
-      folio: ['#','Folio','Factura','DocNum'],
-      cliente: ['Cliente','Customer','Nombre cliente'],
-      producto: ['Producto(s)','Producto','Descripción','Item'],
-      cantidad: ['Cantidad','Qty','Unidades'],
-      subtotal: ['Subtotal 2','Subtotal','Sub total'],
-      total: ['Total','Importe total','Venta total'],
-      vendedor: ['Vendedor','Seller','Salesperson'],
-      estado: ['Estado','Status'],
-      codigo: ['Codigo','Código','SKU','Clave']
+    // --- CONFIG MSAL (USA TUS VALORES) ---
+    const msalConfig = {
+      auth: {
+        clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
+        authority: 'https://login.microsoftonline.com/45f5b6e6-42e0-4fdd-b61a-df489f75dc8c',
+        redirectUri: 'https://jcarredanot.github.io/dashboard-lxa/'
+      },
+      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
+    };
+    const GRAPH_SCOPES = ['User.Read','Files.Read'];
+
+    // --- util ---
+    const $ = (id)=>document.getElementById(id);
+    const log = (msg)=>{ console.log(msg); $('status').textContent = 'Estado: ' + msg; };
+    const show = (obj)=> $('out').textContent = typeof obj==='string' ? obj : JSON.stringify(obj, null, 2);
+
+    // --- INICIALIZACIÓN MSAL ---
+    let msalInstance;
+    (function init(){
+      if (!window.msal) { alert('MSAL no cargó. Revisa conexión a https://alcdn.msauth.net'); return; }
+      msalInstance = new msal.PublicClientApplication(msalConfig);
+      msalInstance.handleRedirectPromise().then(resp=>{
+        if (resp?.account) { log('sesión restaurada'); afterLogin(resp.account); }
+      }).catch(e=>console.error('handleRedirectPromise error', e));
+      log('MSAL listo');
+    })();
+
+    // --- BOTONES ---
+    $('btnLogin').onclick = async ()=>{
+      try{
+        log('iniciando loginPopup…');
+        const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
+        afterLogin(resp.account);
+      }catch(e){ alert('Error login: '+e.message); }
+    };
+    $('btnLogout').onclick = async ()=>{
+      try{
+        log('cerrando sesión…');
+        await msalInstance.logoutPopup();
+        show('(sin datos)');
+      }catch(e){ alert('Error logout: '+e.message); }
+    };
+
+    // --- POST LOGIN: prueba de token silencioso y llamada a /me ---
+    async function afterLogin(account){
+      try{
+        const token = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
+        log('token OK, llamando Graph /me…');
+        const me = await fetch('https://graph.microsoft.com/v1.0/me', {
+          headers: { Authorization: 'Bearer '+token.accessToken }
+        }).then(r=>r.json());
+        show(me);
+      }catch(e){ alert('Error post-login: '+e.message); }
     }
-    ,
-    // === Archivo de COSTOS externo ===
-    costs: {
-      shareUrl: 'https://laidealmx-my.sharepoint.com/:x:/g/personal/jcarredano_laideal_com_mx/Ee5DS7L1BJJJr-uW19raWisB_07jKSnXsvIUD5Z8Ezy25w?e=QZ9s1s',
-      priceSheet: 'Precios de Lista 2025',
-      codesSheet: 'CODIGOS',
-      columns: {
-        price_product: ['Producto','Descripción','Nombre','Producto(s)'],
-        price_code: ['Codigo','Código','SKU','Clave'],
-        price_cost: ['COSTO DINAMICO ALMEXA','Costo dinámico Almexa','Costo Almexa'],
-        code_code: ['Codigo','Código','SKU','Clave'],
-        code_product: ['Producto','Descripción','Nombre','Producto(s)']
-      }
-    }
-  }
-
-  // ========================
-  // 2) MSAL (Auth code + PKCE) (Auth code + PKCE)
-  // ========================
-  const msalConfig = {
-    auth:{
-      clientId:'9d480cdb-912b-4132-9882-f36d6c3b12e5', // ► reemplaza si usarás otra app
-      authority:'https://login.microsoftonline.com/45f5b6e6-42e0-4fdd-b61a-df489f75dc8c', // tenant (o common/organizations)
-      redirectUri: 'https://jcarredanot.github.io/dashboard-lxa/' // GitHub Pages url
-    },
-    cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
-  }
-  const msalInstance = new msal.PublicClientApplication(msalConfig)
-  const GRAPH_SCOPES_READ = ['User.Read','Files.Read'] // solo lectura
-
-  // ========================
-  // 3) Estado global
-  // ========================
-  let allData = []
-  let filtered = []
-  let analytics = {}
-  const charts = {}
-  let costMap = new Map() // codigo -> { costo }
-  
-  // Campo monetario preferido para KPIs (sin IVA según LXA):
-  const AMOUNT_FIELD = 'subtotal' // alternativas: 'total'
-
-  // ========================
-  // 4) Utilidades
-  // ========================
-  const fmtCurrency = v => '$' + (v||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})
-  const byId = id => document.getElementById(id)
-
-  function findCol(row, candidates){
-    for (const name of candidates){ if (row.hasOwnProperty(name)) return row[name] }
-    // búsqueda case-insensitive y trimming
-    const keys = Object.keys(row)
-    for (const name of candidates){
-      const k = keys.find(x => x && x.toString().trim().toLowerCase() === name.toLowerCase())
-      if (k) return row[k]
-    }
-    return undefined
-  }
-
-  // Fechas: soporta string dd/mm/aaaa, ISO, y serial Excel
-  function parseExcelDate(value){
-    if (value == null) return null
-    if (typeof value === 'number'){
-      const excelEpoch = new Date(Date.UTC(1899,11,30))
-      return new Date(excelEpoch.getTime() + value*86400000)
-    }
-    if (typeof value === 'string'){
-      const s = value.trim()
-      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
-      if (m) return new Date(+m[3], +m[2]-1, +m[1])
-      const d = new Date(s); if(!isNaN(d)) return d
-    }
-    if (value instanceof Date) return value
-    return null
-  }
-
-  function pickSheet(workbook, desired){
-    const exact = workbook.SheetNames.find(n => n.trim()===desired)
-    if (exact) return workbook.Sheets[exact]
-    const loose = workbook.SheetNames.find(n => n.trim().toLowerCase()===desired.trim().toLowerCase())
-    if (loose) return workbook.Sheets[loose]
-    // fallback: primera hoja
-    return workbook.Sheets[workbook.SheetNames[0]]
-  }
-
-  function switchTab(ev, key){
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
-    ev.currentTarget.classList.add('active')
-    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.add('hidden'))
-    byId('tab-'+key).classList.remove('hidden')
-  }
-
-  // ========================
-  // 5) Auth
-  // Inicializa MSAL cuando el DOM y los scripts diferidos (msal-browser) ya cargaron
-  // Inicialización directa (msal-browser se carga con defer antes de este script)
-  msalInstance.handleRedirectPromise().then(resp=>{ if(resp){ afterLogin(resp.account) } }).catch(e=>console.error('handleRedirectPromise error', e))
-    } catch (e) {
-      console.error('Error inicializando MSAL:', e);
-    }
-  });
-
-  async function login(){
-    try{
-      console.log('[LXA] login clicked')
-      const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES_READ })
-      afterLogin(resp.account)
-    }catch(e){ alert('Error de inicio de sesión: '+e.message) }
-  }
-  function logout(){ msalInstance.logoutPopup() }
-  function afterLogin(account){
-    byId('loginCard').classList.add('hidden')
-    byId('app').classList.remove('hidden')
-    byId('userInfo').textContent = 'Usuario: '+(account?.name||'')
-    loadData()
-  }{
-    byId('loginCard').classList.add('hidden')
-    byId('app').classList.remove('hidden')
-    byId('userInfo').textContent = 'Usuario: '+(account?.name||'')
-    loadData()
-  }
-
-  async function getToken(){
-    const [acct] = msalInstance.getAllAccounts(); if(!acct) throw new Error('No hay sesión activa')
-    const r = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES_READ, account: acct })
-    return r.accessToken
-  }(){
-    const [acct] = msalInstance.getAllAccounts(); if(!acct) throw new Error('No hay sesión activa')
-    const r = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES_READ, account: acct })
-    return r.accessToken
-  }
-
-  // ========================
-  // 6) Cargar Excel desde SharePoint (Graph)
-  // ========================
-  async function loadData(){
-    try{
-      byId('lastUpdate').textContent = 'Cargando…'
-      const token = await getToken()
-      // Cargar costos primero (si están configurados)
-      await maybeLoadCosts(token)
-
-      // shares/u!{base64url}
-      const encoded = 'u!' + btoa(CONFIG.shareUrl).replace(/=+/g,'').replace(/\//g,'_').replace(/\+/g,'-')
-      const metaRes = await fetch(`https://graph.microsoft.com/v1.0/shares/${encoded}/driveItem`, { headers:{ Authorization:`Bearer ${token}` } })
-      if(!metaRes.ok) throw new Error('No se pudo obtener metadata ('+metaRes.status+')')
-      const meta = await metaRes.json()
-
-      const dl = await fetch(`https://graph.microsoft.com/v1.0/drives/${meta.parentReference.driveId}/items/${meta.id}/content`, { headers:{ Authorization:`Bearer ${token}` } })
-      if(!dl.ok) throw new Error('No se pudo descargar el archivo ('+dl.status+')')
-      const buf = await dl.arrayBuffer()
-
-      const wb = XLSX.read(buf, { type:'array' })
-      const ws = pickSheet(wb, CONFIG.sheetName)
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: null })
-
-      // Parseo robusto
-      const out = []
-      for (const row of rows){
-        const fecha = parseExcelDate( findCol(row, CONFIG.columns.fecha) )
-        if(!fecha) continue // sin fecha no entra
-        const total = parseFloat(String(findCol(row, CONFIG.columns.total)||'').replace(/[$,()]/g,''))||0
-        const subtotal = parseFloat(String(findCol(row, CONFIG.columns.subtotal)||'').replace(/[$,()]/g,''))||0
-        const cantidad = parseInt(findCol(row, CONFIG.columns.cantidad))||0
-        const folio = findCol(row, CONFIG.columns.folio) || ''
-        const cliente = (findCol(row, CONFIG.columns.cliente)||'').toString().trim()
-        const producto = (findCol(row, CONFIG.columns.producto)||'').toString().trim()
-        const vendedor = (findCol(row, CONFIG.columns.vendedor)||'').toString().trim()
-        const estado = (findCol(row, CONFIG.columns.estado)||'').toString().trim()
-        const codigo = (findCol(row, CONFIG.columns.codigo)||'').toString().trim()
-        const monto = (AMOUNT_FIELD==='subtotal'? subtotal : total)
-        const precioUnit = cantidad>0 ? (monto / cantidad) : 0
-        const costEntry = costMap.get(codigo) || null
-        const costoUnit = costEntry?.costo ?? null
-        const utilidad = (costoUnit!=null) ? (precioUnit - costoUnit) * (cantidad||0) : null
-        const margen_pct = (costoUnit!=null && precioUnit>0) ? ((precioUnit - costoUnit)/precioUnit)*100 : null
-
-        out.push({
-          fecha, año: fecha.getFullYear(), mes: fecha.getMonth()+1,
-          numFactura: folio, cliente, producto, cantidad, subtotal, total, vendedor, estado, codigo,
-          precioUnit, costoUnit, utilidad, margen_pct
-        })
-      }
-
-      allData = out
-      updateFilters()
-      computeAnalytics()
-      renderAll()
-      byId('lastUpdate').textContent = 'Última actualización: '+ new Date().toLocaleString('es-MX')
-    }catch(e){
-      byId('tab-score').innerHTML = `<div class="error"><h3>⚠️ Error al cargar datos</h3><p>${e.message}</p><ul><li>Revisa la URL compartida de SharePoint</li><li>Confirma permisos Files.Read</li><li>Valida el nombre de la hoja: <b>${CONFIG.sheetName}</b></li></ul></div>`
-    }
-  }
-
-  // ========================
-  // 7) Filtros
-  // ========================
-  function updateFilters(){
-    const years = [...new Set(allData.map(r=>r.año))].sort()
-    byId('yearFilter').innerHTML = '<option value="all">Todos</option>' + years.map(y=>`<option value="${y}">${y}</option>`).join('')
-    filtered = allData.slice()
-  }
-
-  function applyFilters(){
-    const y = byId('yearFilter').value
-    const m = byId('monthFilter').value
-    const inc = byId('includeNoFolio').value === 'si'
-
-    filtered = allData.filter(r=>{
-      if (y !== 'all' && r.año !== +y) return false
-      if (m !== 'all' && r.mes !== +m) return false
-      if (!inc && !r.numFactura) return false
-      return true
-    })
-    computeAnalytics()
-    renderAll()
-  }
-
-  // ========================
-  // 8) Analytics
-  // ========================
-  function computeAnalytics(){
-    // Totales
-    const withFolio = filtered
-    const totalVentas = withFolio.reduce((a,r)=> a + (r[AMOUNT_FIELD]||0), 0)=> a + (r[AMOUNT_FIELD]||0), 0)=> a + (r[AMOUNT_FIELD]||0), 0)=>a + (r.total||0), 0)
-    const numFact = withFolio.length
-    const ticket = numFact ? totalVentas/numFact : 0
-
-    // Ventas por año (base: allData)
-    const ventasPorAño = {}
-    for (const r of allData){ ventasPorAño[r.año] = (ventasPorAño[r.año]||0) + (r[AMOUNT_FIELD]||0) }
-    const v24 = ventasPorAño[2024]||0
-    const v25 = ventasPorAño[2025]||0
-    const meta2025 = v24 * (1 + CONFIG.metaCrecimiento2025)
-    const avance = meta2025 ? (v25/meta2025)*100 : 0
-    const crec = v24 ? ((v25 - v24)/v24)*100 : 0
-
-    // Clientes
-    const cMap = new Map()
-    for (const r of filtered){
-      if (!r.cliente) continue
-      const cur = cMap.get(r.cliente) || { total:0, facturas:0, ultima:r.fecha }
-      cur.total += (r[AMOUNT_FIELD]||0)
-      cur.facturas += 1
-      if (r.fecha > cur.ultima) cur.ultima = r.fecha
-      cMap.set(r.cliente, cur)
-    }
-    const clientes = [...cMap.entries()].map(([nombre,st])=>{
-      const dias = Math.floor((Date.now() - st.ultima)/86400000)
-      let seg = 'Ocasional'
-      if (dias <= 30 && st.facturas >= 5) seg = 'VIP'
-      else if (dias <= 60 && st.facturas >= 3) seg = 'Leal'
-      else if (dias > 90) seg = 'Riesgo'
-      return { nombre, total: st.total, facturas: st.facturas, ultima: st.ultima, dias, segmento: seg }
-    }).sort((a,b)=>b.total-a.total)
-    const inactivos = clientes.filter(c=>c.dias > CONFIG.diasClienteInactivo)
-
-    // Productos (ABC por subtotal)
-    const pMap = new Map(); let totalSub = 0
-    for (const r of filtered){
-      if (!r.producto) continue
-      const cur = pMap.get(r.producto) || { cantidad:0, valor:0 }
-      cur.cantidad += (r.cantidad||0); cur.valor += (r.subtotal||0)
-      pMap.set(r.producto, cur); totalSub += (r.subtotal||0)
-    }
-    const productos = [...pMap.entries()].map(([nombre,st])=>({ nombre, cantidad:st.cantidad, valor:st.valor }))
-                             .sort((a,b)=>b.valor-a.valor)
-    let acc=0; for (const p of productos){ acc += p.valor; const pct = totalSub? (acc/totalSub)*100 : 0; p.categoria = pct<=80?'A': pct<=95?'B':'C' }
-
-    // Proyección mensual (mes actual, base allData)
-    const now = new Date(); const MA = now.getMonth()+1; const YA = now.getFullYear(); const dia = now.getDate();
-    const diasMes = new Date(YA, MA, 0).getDate()
-    const ventasMes = allData.filter(r=>r.año===YA && r.mes===MA).reduce((a,r)=>a+(r[AMOUNT_FIELD]||0),0)
-    const prom = dia? ventasMes/dia : 0
-    const proj = prom * diasMes
-    const metaMensual = meta2025/12
-    const diasRest = Math.max(0, diasMes - dia)
-    const vNeces = diasRest? Math.max(0,(metaMensual - ventasMes)/diasRest) : 0
-
-    analytics = {
-      totalVentas, numFacturas: numFact, ticketPromedio: ticket,
-      ventasPorAño, ventas2024: v24, ventas2025: v25, meta2025: meta2025,
-      avanceVsMeta: avance, crecimientoAnual: crec,
-      clientes, totalClientes: clientes.length, clientesInactivos: inactivos,
-      productos,
-      proyeccion: { ventasMes, proyeccion: proj, metaMensual, diasRestantes: diasRest, ventasNecesarias: vNeces, probabilidad: metaMensual? (proj/metaMensual)*100 : 0 }
-    }
-  }
-
-  // ========================
-  // 9) Render
-  // ========================
-  function renderAll(){ renderScore(); renderVentas(); renderClientes(); renderProductos() }
-
-  function renderScore(){
-    const a = analytics
-    // Título dinámico para proyección del mes
-    const now = new Date();
-    const mesesL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-    const tituloProyeccion = `Proyección del Mes (${mesesL[now.getMonth()]} ${now.getFullYear()})`;
-    const añosHtml = Object.entries(a.ventasPorAño).map(([y,v])=>`<div><b>${y}:</b> ${fmtCurrency(v)}</div>`).join(' ')
-    const p = a.proyeccion
-
-    byId('tab-score').innerHTML = `
-      <div class="warn" style="margin-bottom:12px">
-        <b>📊 Datos por año:</b> <span>${añosHtml||'—'}</span>
-      </div>
-      <div class=\"projection\" style=\"margin-top:8px\"><h2>🎯 ${tituloProyeccion}</h2></div><div class=\"projection grid cols-4\" style="gap:16px">
-        <div><div class="muted">Meta mensual</div><div style="font-size:1.6rem;font-weight:800">${fmtCurrency(p.metaMensual)}</div></div>
-        <div><div class="muted">Ventas a la fecha</div><div style="font-size:1.6rem;font-weight:800">${fmtCurrency(p.ventasMes)}</div></div>
-        <div><div class="muted">Proyección</div><div style="font-size:1.6rem;font-weight:800">${fmtCurrency(p.proyeccion)}</div><div>${(p.probabilidad||0).toFixed(0)}% prob.</div></div>
-        <div><div class="muted">Días restantes</div><div style="font-size:1.6rem;font-weight:800">${p.diasRestantes}</div><div>${fmtCurrency(p.ventasNecesarias)}/día</div></div>
-      </div>
-
-      <div class="grid cols-4" style="margin-top:16px">
-        <div class="kpi"><h4>Ventas Totales (filtro)</h4><div class="v">${fmtCurrency(a.totalVentas)}</div></div>
-        <div class="kpi"><h4>Facturas</h4><div class="v">${a.numFacturas}</div></div>
-        <div class="kpi"><h4>Ticket Promedio</h4><div class="v">${fmtCurrency(a.ticketPromedio)}</div></div>
-        <div class="kpi"><h4>Total Clientes</h4><div class="v">${a.totalClientes}</div></div>
-      </div>
-
-      <div class="grid cols-4" style="margin-top:16px">
-        <div class="kpi"><h4>Ventas 2024</h4><div class="v">${fmtCurrency(a.ventas2024)}</div></div>
-        <div class="kpi"><h4>Meta 2025 (+15%)</h4><div class="v">${fmtCurrency(a.meta2025)}</div></div>
-        <div class="kpi"><h4>Ventas 2025</h4><div class="v">${fmtCurrency(a.ventas2025)}</div></div>
-        <div class="kpi"><h4>Avance vs Meta</h4><div class="v">${(a.avanceVsMeta||0).toFixed(1)}%</div></div>
-      </div>
-
-      ${a.clientesInactivos.length? `<div class="warn" style="margin-top:16px"><b>⚠ Clientes inactivos (${CONFIG.diasClienteInactivo}+ días):</b><br>${a.clientesInactivos.slice(0,5).map(c=>`• ${c.nombre} — ${c.dias} días — ${fmtCurrency(c.total)}`).join('<br>')}</div>` : ''}
-
-      <div class=\"grid cols-2\" style=\"margin-top:16px\">
-        <div class=\"card\"><h3>Top 5 Prod. por Utilidad</h3><canvas id=\"chartTopUtilidad\"></canvas></div>
-      </div>
-        <div class="card"><h3>Top 5 Productos</h3><canvas id="chartTopProductos"></canvas></div>
-      </div>
-    `
-
-    // Charts
-    setTimeout(()=>{ drawTopClientes(); drawTopProductos(); drawTopUtilidad(); }, 50)
-  }
-
-  function drawTopClientes(){
-    const el = document.getElementById('chartTopClientes'); if(!el) return
-    const top = analytics.clientes.slice(0,5)
-    const data = { labels: top.map(x=>x.nombre), datasets:[{ label:'Ventas', data: top.map(x=>x.total) }] }
-    charts.topClientes && charts.topClientes.destroy()
-    charts.topClientes = new Chart(el, { type:'bar', data, options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>fmtCurrency(v) } } } } })
-  }
-  function drawTopProductos(){
-    const el = document.getElementById('chartTopProductos'); if(!el) return
-    const top = analytics.productos.slice(0,5)
-    const data = { labels: top.map(x=>x.nombre.slice(0,30)), datasets:[{ label:'Ventas', data: top.map(x=>x.valor) }] }
-    charts.topProductos && charts.topProductos.destroy()
-    charts.topProductos = new Chart(el, { type:'bar', data, options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>fmtCurrency(v) } } } } })
-  }
-  function drawTopUtilidad(){
-    const el = document.getElementById('chartTopUtilidad'); if(!el) return
-    const utilByProd = new Map()
-    for(const r of filtered){ if(!r.producto || r.utilidad==null) continue; utilByProd.set(r.producto, (utilByProd.get(r.producto)||0) + r.utilidad) }
-    const arr = [...utilByProd.entries()].map(([nombre,util])=>({nombre,util})).sort((a,b)=>b.util-a.util).slice(0,5)
-    const data = { labels: arr.map(x=>x.nombre.slice(0,30)), datasets:[{ label:'Utilidad', data: arr.map(x=>x.util) }] }
-    charts.topUtil && charts.topUtil.destroy()
-    charts.topUtil = new Chart(el, { type:'bar', data, options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>fmtCurrency(v) } } } } })
-  }
-
-  function renderVentas(){
-    const a = analytics
-    byId('tab-ventas').innerHTML = `
-      <div class="kpi"><h4>Crecimiento Anual</h4><div class="v" style="color:${(a.crecimientoAnual||0)>=0?'#10b981':'#ef4444'}">${(a.crecimientoAnual||0).toFixed(1)}%</div></div>
-      <div class="card" style="margin-top:16px"><h3>Evolución 2024 vs 2025</h3><canvas id="chartEvo"></canvas></div>
-    `
-    setTimeout(()=>drawEvo(),50)
-  }
-
-  function drawEvo(){
-    const el = document.getElementById('chartEvo'); if(!el) return
-    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-    const v24 = Array(12).fill(0), v25 = Array(12).fill(0)
-    for (const r of allData){ if(!r.numFactura) continue; if(r.año===2024) v24[r.mes-1]+= (r[AMOUNT_FIELD]||0); if(r.año===2025) v25[r.mes-1]+= (r[AMOUNT_FIELD]||0) }
-    charts.evo && charts.evo.destroy()
-    charts.evo = new Chart(el, { type:'line', data:{ labels: meses, datasets:[{label:'2024',data:v24},{label:'2025',data:v25}] }, options:{ scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>fmtCurrency(v) } } } } })
-  }
-
-  function renderClientes(){
-    const seg = {VIP:0,Leal:0,Ocasional:0,Riesgo:0}
-    for (const c of analytics.clientes){ seg[c.segmento]++ }
-    byId('tab-clientes').innerHTML = `
-      <div class="grid cols-4">
-        <div class="kpi"><h4>VIP</h4><div class="v">${seg.VIP}</div></div>
-        <div class="kpi"><h4>Leales</h4><div class="v">${seg.Leal}</div></div>
-        <div class="kpi"><h4>Ocasionales</h4><div class="v">${seg.Ocasional}</div></div>
-        <div class="kpi"><h4>En Riesgo</h4><div class="v">${seg.Riesgo}</div></div>
-      </div>
-      <div class="card" style="margin-top:16px">
-        <h3>Top 20 Clientes</h3>
-        <table><thead><tr><th>Cliente</th><th>Segmento</th><th>Ventas</th><th>Facturas</th><th>Última compra</th><th>Días</th></tr></thead>
-          <tbody>
-            ${analytics.clientes.slice(0,20).map(c=>`
-              <tr>
-                <td>${c.nombre}</td>
-                <td><span class="badge ${c.segmento}">${c.segmento}</span></td>
-                <td>${fmtCurrency(c.total)}</td>
-                <td>${c.facturas}</td>
-                <td>${new Date(c.ultima).toLocaleDateString('es-MX')}</td>
-                <td>${c.dias}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    `
-  }
-
-  function renderProductos(){
-    byId('tab-productos').innerHTML = `
-      <h3>Top 20 Productos</h3>
-      <table><thead><tr><th>Producto</th><th>Categoría</th><th>Cantidad</th><th>Valor</th></tr></thead>
-        <tbody>
-          ${analytics.productos.slice(0,20).map(p=>`
-            <tr><td>${p.nombre}</td><td><span class="badge">${p.categoria||'-'}</span></td><td>${p.cantidad}</td><td>${fmtCurrency(p.valor)}</td></tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `
-  }
   </script>
-
-  <!--
-  ===============================
-  10) Plan de migración (resumen)
-  ===============================
-  1. Azure AD
-     - Registra una "App" (tipo SPA) → Authentication → Redirect URI = https://<tu-usuario>.github.io/<repo>/
-     - Permisos Microsoft Graph: User.Read (Delegated), Files.Read (Delegated)
-     - (Opcional) Files.Read.All si leerás fuera del link compartido
-     - Habilita Implicit deshabilitado; usa Authorization Code + PKCE (por defecto en msal-browser)
-
-  2. SharePoint
-     - Abre el Excel LXA → Copiar vínculo (compartido con tu organización). Usa ese URL en CONFIG.shareUrl
-     - Verifica Historial de versiones y permisos (solo lectura es suficiente)
-
-  3. Repo (GitHub Pages)
-     - Crea repo con index.html (este archivo)
-     - Settings → Pages → Deploy from Branch → main / root
-     - Agrega la URL de Pages como Redirect URI en Azure
-
-  4. Pruebas
-     - Login → Carga OK → Revisar consola para ver nombre de hoja detectada
-     - Validar encabezados: si algún campo no aparece, añade variante a CONFIG.columns
-     - Revisar totales vs Excel
-
-  5. Endurecimiento
-     - CacheLocation: localStorage
-     - Reintentos en descarga (si quieres)
-     - Sanitizar inputs si agregas formularios
-
-  6. Escalabilidad
-     - Si el Excel crece mucho: mover a API backend que entregue JSON (opcional)
-     - O usar Excel API (Graph) para rango acotado
-  -->
-<script>
-  // === Carga del archivo de COSTOS (mismo token) ===
-  async function maybeLoadCosts(token){
-    try{
-      const c = CONFIG.costs; if(!c?.shareUrl){ costMap = new Map(); return }
-      const encoded = 'u!' + btoa(c.shareUrl).replace(/=+/g,'').replace(/\//g,'_').replace(/\+/g,'-')
-      const metaRes = await fetch(`https://graph.microsoft.com/v1.0/shares/${encoded}/driveItem`, { headers:{ Authorization:`Bearer ${token}` } })
-      if(!metaRes.ok) throw new Error('No se pudo obtener metadata de COSTOS ('+metaRes.status+')')
-      const meta = await metaRes.json()
-      const dl = await fetch(`https://graph.microsoft.com/v1.0/drives/${meta.parentReference.driveId}/items/${meta.id}/content`, { headers:{ Authorization:`Bearer ${token}` } })
-      if(!dl.ok) throw new Error('No se pudo descargar COSTOS ('+dl.status+')')
-      const buf = await dl.arrayBuffer()
-      const wb = XLSX.read(buf, { type:'array' })
-
-      // 1) Tabla de códigos (nombre -> código)
-      const wsCodes = pickSheet(wb, c.codesSheet)
-      const rowsCodes = XLSX.utils.sheet_to_json(wsCodes, { defval: null })
-      const nameToCode = new Map()
-      for (const r of rowsCodes){
-        const code = (findCol(r, c.columns.code_code)||'').toString().trim()
-        const pname = (findCol(r, c.columns.code_product)||'').toString().trim()
-        if (code && pname) nameToCode.set(pname.toUpperCase(), code)
-      }
-
-      // 2) Precios (producto/código -> costo)
-      const wsPrice = pickSheet(wb, c.priceSheet)
-      const rowsPrice = XLSX.utils.sheet_to_json(wsPrice, { defval: null })
-      const m = new Map()
-      for (const r of rowsPrice){
-        const codeDirect = (findCol(r, c.columns.price_code)||'').toString().trim()
-        const pname = (findCol(r, c.columns.price_product)||'').toString().trim()
-        const costRaw = findCol(r, c.columns.price_cost)
-        const costo = parseFloat(String(costRaw||'').replace(/[$,()]/g,''))
-        if (isNaN(costo)) continue
-        let key = codeDirect
-        if (!key && pname){ key = nameToCode.get(pname.toUpperCase()) || '' }
-        if (!key) continue
-        m.set(key, { costo })
-      }
-      costMap = m
-    }catch(e){ console.warn('COSTOS no cargado:', e.message); costMap = new Map() }
-  }
-</script>
 </body>
 </html>
