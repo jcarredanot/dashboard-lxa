@@ -1359,17 +1359,13 @@
             const tab = document.getElementById('tab-clientes');
 
             if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
-                tab.innerHTML = '<div class="loading"><h3>No hay datos de clientes disponibles</h3></div>';
+                tab.innerHTML = '<div class="loading"><h3>Cargando datos de clientes...</h3></div>';
                 return;
             }
 
-            // Calcular CLV promedio
             const clvPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.total, 0) / analytics.clientesOrdenados.length;
-
-            // Frecuencia promedio
             const frecuenciaPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.frecuencia, 0) / analytics.clientesOrdenados.length;
 
-            // Segmentación RFM
             const segmentos = {};
             if (analytics.rfmData && analytics.rfmData.length > 0) {
                 analytics.rfmData.forEach(c => {
@@ -1378,89 +1374,66 @@
                 });
             }
 
-            tab.innerHTML = `
-                <div class="kpis">
-                    <div class="kpi-card">
-                        <h3>CLV Promedio</h3>
-                        <div class="value">${formatCurrency(clvPromedio)}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Frecuencia Promedio</h3>
-                        <div class="value">${frecuenciaPromedio.toFixed(1)}</div>
-                        <div class="trend">compras por cliente</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Clientes VIP</h3>
-                        <div class="value">${segmentos['VIP'] || 0}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <h3>Clientes en Riesgo</h3>
-                        <div class="value">${segmentos['Riesgo'] || 0}</div>
-                    </div>
-                </div>
+            const segmentoVIP = segmentos['VIP'] || 0;
+            const segmentoLeal = segmentos['Leal'] || 0;
+            const segmentoOcasional = segmentos['Ocasional'] || 0;
+            const segmentoRiesgo = segmentos['Riesgo'] || 0;
 
-                <div class="info-card">
-                    <h3>📊 Segmentación RFM</h3>
-                    <div class="info-item">• <strong>VIP:</strong> ${segmentos['VIP'] || 0} clientes (compra reciente, alta frecuencia, alto valor)</div>
-                    <div class="info-item">• <strong>Leales:</strong> ${segmentos['Leal'] || 0} clientes (compran regularmente)</div>
-                    <div class="info-item">• <strong>Ocasionales:</strong> ${segmentos['Ocasional'] || 0} clientes (compras esporádicas)</div>
-                    <div class="info-item">• <strong>En Riesgo:</strong> ${segmentos['Riesgo'] || 0} clientes (90+ días sin comprar)</div>
-                </div>
+            const kpisHTML = '<div class="kpis">' +
+                '<div class="kpi-card"><h3>CLV Promedio</h3><div class="value">' + formatCurrency(clvPromedio) + '</div></div>' +
+                '<div class="kpi-card"><h3>Frecuencia Promedio</h3><div class="value">' + frecuenciaPromedio.toFixed(1) + '</div><div class="trend">compras por cliente</div></div>' +
+                '<div class="kpi-card"><h3>Clientes VIP</h3><div class="value">' + segmentoVIP + '</div></div>' +
+                '<div class="kpi-card"><h3>Clientes en Riesgo</h3><div class="value">' + segmentoRiesgo + '</div></div>' +
+                '</div>';
 
-                ${analytics.clientesInactivos && analytics.clientesInactivos.length > 0 ? `
-                    <div class="alert-card">
-                        <h3>⚠️ Clientes Inactivos (${CEO_CONFIG.diasClienteInactivo}+ días sin comprar)</h3>
-                        ${analytics.clientesInactivos.slice(0, 10).map(c => 
-                            `<div class="alert-item">• <strong>${c.nombre}</strong> - ${c.diasDesdeUltimaCompra} días - CLV: ${formatCurrency(c.total)}</div>`
-                        ).join('')}
-                    </div>
-                ` : ''}
+            const segmentacionHTML = '<div class="info-card">' +
+                '<h3>📊 Segmentación RFM</h3>' +
+                '<div class="info-item">• <strong>VIP:</strong> ' + segmentoVIP + ' clientes (compra reciente, alta frecuencia, alto valor)</div>' +
+                '<div class="info-item">• <strong>Leales:</strong> ' + segmentoLeal + ' clientes (compran regularmente)</div>' +
+                '<div class="info-item">• <strong>Ocasionales:</strong> ' + segmentoOcasional + ' clientes (compras esporádicas)</div>' +
+                '<div class="info-item">• <strong>En Riesgo:</strong> ' + segmentoRiesgo + ' clientes (90+ días sin comprar)</div>' +
+                '</div>';
 
-                <div class="charts">
-                    <div class="chart-card">
-                        <h3>Segmentación de Clientes</h3>
-                        <div class="chart-container">
-                            <canvas id="chartSegmentacion"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Top 10 Clientes por CLV</h3>
-                        <div class="chart-container">
-                            <canvas id="chartTopCLV"></canvas>
-                        </div>
-                    </div>
-                </div>
+            let alertasHTML = '';
+            if (analytics.clientesInactivos && analytics.clientesInactivos.length > 0) {
+                alertasHTML = '<div class="alert-card"><h3>⚠️ Clientes Inactivos (' + CEO_CONFIG.diasClienteInactivo + '+ días sin comprar)</h3>';
+                analytics.clientesInactivos.slice(0, 10).forEach(c => {
+                    alertasHTML += '<div class="alert-item">• <strong>' + c.nombre + '</strong> - ' + c.diasDesdeUltimaCompra + ' días - CLV: ' + formatCurrency(c.total) + '</div>';
+                });
+                alertasHTML += '</div>';
+            }
 
-                <div class="table-card">
-                    <h3>Análisis RFM de Clientes (Top 20)</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Segmento</th>
-                                <th>CLV</th>
-                                <th>Frecuencia</th>
-                                <th>Última Compra</th>
-                                <th>Días</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${analytics.rfmData && analytics.rfmData.length > 0 ? analytics.rfmData.slice(0, 20).map(c => `
-                                <tr>
-                                    <td>${c.nombre}</td>
-                                    <td><span class="badge ${c.segmento}">${c.segmento}</span></td>
-                                    <td>${formatCurrency(c.total)}</td>
-                                    <td>${c.frecuencia}</td>
-                                    <td>${c.ultimaCompra.toLocaleDateString('es-MX')}</td>
-                                    <td class="${c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo ? 'trend down' : 'trend up'}">
-                                        ${c.diasDesdeUltimaCompra}
-                                    </td>
-                                </tr>
-                            `).join('') : '<tr><td colspan="6">No hay datos disponibles</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            const chartsHTML = '<div class="charts">' +
+                '<div class="chart-card"><h3>Segmentación de Clientes</h3><div class="chart-container"><canvas id="chartSegmentacion"></canvas></div></div>' +
+                '<div class="chart-card"><h3>Top 10 Clientes por CLV</h3><div class="chart-container"><canvas id="chartTopCLV"></canvas></div></div>' +
+                '</div>';
+
+            let tableHTML = '<div class="table-card"><h3>Análisis RFM de Clientes (Top 20)</h3><table>' +
+                '<thead><tr><th>Cliente</th><th>Segmento</th><th>CLV</th><th>Frecuencia</th><th>Última Compra</th><th>Días</th></tr></thead>' +
+                '<tbody>';
+            
+            if (analytics.rfmData && analytics.rfmData.length > 0) {
+                analytics.rfmData.slice(0, 20).forEach(c => {
+                    const trendClass = c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo ? 'trend down' : 'trend up';
+                    tableHTML += '<tr>' +
+                        '<td>' + c.nombre + '</td>' +
+                        '<td><span class="badge ' + c.segmento + '">' + c.segmento + '</span></td>' +
+                        '<td>' + formatCurrency(c.total) + '</td>' +
+                        '<td>' + c.frecuencia + '</td>' +
+                        '<td>' + c.ultimaCompra.toLocaleDateString('es-MX') + '</td>' +
+                        '<td class="' + trendClass + '">' + c.diasDesdeUltimaCompra + '</td>' +
+                        '</tr>';
+                });
+            } else {
+                tableHTML += '<tr><td colspan="6">No hay datos disponibles</td></tr>';
+            }
+            
+            tableHTML += '</tbody></table></div>';
+
+            tab.innerHTML = kpisHTML + segmentacionHTML + alertasHTML + chartsHTML + tableHTML;
+
+
+
 
             setTimeout(() => {
                 createSegmentacionChart();
