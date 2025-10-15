@@ -129,12 +129,27 @@
       subtotal: ['Subtotal 2','Subtotal','Sub total'],
       total: ['Total','Importe total','Venta total'],
       vendedor: ['Vendedor','Seller','Salesperson'],
-      estado: ['Estado','Status']
+      estado: ['Estado','Status'],
+      codigo: ['Codigo','Código','SKU','Clave']
+    }
+    ,
+    // === Archivo de COSTOS externo ===
+    costs: {
+      shareUrl: 'https://laidealmx-my.sharepoint.com/:x:/g/personal/jcarredano_laideal_com_mx/Ee5DS7L1BJJJr-uW19raWisB_07jKSnXsvIUD5Z8Ezy25w?e=QZ9s1s',
+      priceSheet: 'Precios de Lista 2025',
+      codesSheet: 'CODIGOS',
+      columns: {
+        price_product: ['Producto','Descripción','Nombre','Producto(s)'],
+        price_code: ['Codigo','Código','SKU','Clave'],
+        price_cost: ['COSTO DINAMICO ALMEXA','Costo dinámico Almexa','Costo Almexa'],
+        code_code: ['Codigo','Código','SKU','Clave'],
+        code_product: ['Producto','Descripción','Nombre','Producto(s)']
+      }
     }
   }
 
   // ========================
-  // 2) MSAL (Auth code + PKCE)
+  // 2) MSAL (Auth code + PKCE) (Auth code + PKCE)
   // ========================
   const msalConfig = {
     auth:{
@@ -154,6 +169,10 @@
   let filtered = []
   let analytics = {}
   const charts = {}
+  let costMap = new Map() // codigo -> { costo }
+  
+  // Campo monetario preferido para KPIs (sin IVA según LXA):
+  const AMOUNT_FIELD = 'subtotal' // alternativas: 'total'
 
   // ========================
   // 4) Utilidades
@@ -237,6 +256,8 @@
     try{
       byId('lastUpdate').textContent = 'Cargando…'
       const token = await getToken()
+      // Cargar costos primero (si están configurados)
+      await maybeLoadCosts(token)
 
       // shares/u!{base64url}
       const encoded = 'u!' + btoa(CONFIG.shareUrl).replace(/=+/g,'').replace(/\//g,'_').replace(/\+/g,'-')
@@ -257,18 +278,26 @@
       for (const row of rows){
         const fecha = parseExcelDate( findCol(row, CONFIG.columns.fecha) )
         if(!fecha) continue // sin fecha no entra
-        const total = parseFloat(String(findCol(row, CONFIG.columns.total)||'').replace(/[$,]/g,''))||0
-        const subtotal = parseFloat(String(findCol(row, CONFIG.columns.subtotal)||'').replace(/[$,]/g,''))||0
+        const total = parseFloat(String(findCol(row, CONFIG.columns.total)||'').replace(/[$,()]/g,''))||0
+        const subtotal = parseFloat(String(findCol(row, CONFIG.columns.subtotal)||'').replace(/[$,()]/g,''))||0
         const cantidad = parseInt(findCol(row, CONFIG.columns.cantidad))||0
         const folio = findCol(row, CONFIG.columns.folio) || ''
         const cliente = (findCol(row, CONFIG.columns.cliente)||'').toString().trim()
         const producto = (findCol(row, CONFIG.columns.producto)||'').toString().trim()
         const vendedor = (findCol(row, CONFIG.columns.vendedor)||'').toString().trim()
         const estado = (findCol(row, CONFIG.columns.estado)||'').toString().trim()
+        const codigo = (findCol(row, CONFIG.columns.codigo)||'').toString().trim()
+        const monto = (AMOUNT_FIELD==='subtotal'? subtotal : total)
+        const precioUnit = cantidad>0 ? (monto / cantidad) : 0
+        const costEntry = costMap.get(codigo) || null
+        const costoUnit = costEntry?.costo ?? null
+        const utilidad = (costoUnit!=null) ? (precioUnit - costoUnit) * (cantidad||0) : null
+        const margen_pct = (costoUnit!=null && precioUnit>0) ? ((precioUnit - costoUnit)/precioUnit)*100 : null
 
         out.push({
           fecha, año: fecha.getFullYear(), mes: fecha.getMonth()+1,
-          numFactura: folio, cliente, producto, cantidad, subtotal, total, vendedor, estado
+          numFactura: folio, cliente, producto, cantidad, subtotal, total, vendedor, estado, codigo,
+          precioUnit, costoUnit, utilidad, margen_pct
         })
       }
 
@@ -312,13 +341,13 @@
   function computeAnalytics(){
     // Totales
     const withFolio = filtered
-    const totalVentas = withFolio.reduce((a,r)=>a + (r.total||0), 0)
+    const totalVentas = withFolio.reduce((a,r)=> a + (r[AMOUNT_FIELD]||0), 0)=> a + (r[AMOUNT_FIELD]||0), 0)=> a + (r[AMOUNT_FIELD]||0), 0)=>a + (r.total||0), 0)
     const numFact = withFolio.length
     const ticket = numFact ? totalVentas/numFact : 0
 
     // Ventas por año (base: allData)
     const ventasPorAño = {}
-    for (const r of allData){ ventasPorAño[r.año] = (ventasPorAño[r.año]||0) + (r.total||0) }
+    for (const r of allData){ ventasPorAño[r.año] = (ventasPorAño[r.año]||0) + (r[AMOUNT_FIELD]||0) }
     const v24 = ventasPorAño[2024]||0
     const v25 = ventasPorAño[2025]||0
     const meta2025 = v24 * (1 + CONFIG.metaCrecimiento2025)
@@ -330,7 +359,7 @@
     for (const r of filtered){
       if (!r.cliente) continue
       const cur = cMap.get(r.cliente) || { total:0, facturas:0, ultima:r.fecha }
-      cur.total += r.total||0
+      cur.total += (r[AMOUNT_FIELD]||0)
       cur.facturas += 1
       if (r.fecha > cur.ultima) cur.ultima = r.fecha
       cMap.set(r.cliente, cur)
@@ -360,7 +389,7 @@
     // Proyección mensual (mes actual, base allData)
     const now = new Date(); const MA = now.getMonth()+1; const YA = now.getFullYear(); const dia = now.getDate();
     const diasMes = new Date(YA, MA, 0).getDate()
-    const ventasMes = allData.filter(r=>r.año===YA && r.mes===MA).reduce((a,r)=>a+(r.total||0),0)
+    const ventasMes = allData.filter(r=>r.año===YA && r.mes===MA).reduce((a,r)=>a+(r[AMOUNT_FIELD]||0),0)
     const prom = dia? ventasMes/dia : 0
     const proj = prom * diasMes
     const metaMensual = meta2025/12
@@ -384,6 +413,10 @@
 
   function renderScore(){
     const a = analytics
+    // Título dinámico para proyección del mes
+    const now = new Date();
+    const mesesL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+    const tituloProyeccion = `Proyección del Mes (${mesesL[now.getMonth()]} ${now.getFullYear()})`;
     const añosHtml = Object.entries(a.ventasPorAño).map(([y,v])=>`<div><b>${y}:</b> ${fmtCurrency(v)}</div>`).join(' ')
     const p = a.proyeccion
 
@@ -391,7 +424,7 @@
       <div class="warn" style="margin-bottom:12px">
         <b>📊 Datos por año:</b> <span>${añosHtml||'—'}</span>
       </div>
-      <div class="projection grid cols-4" style="gap:16px">
+      <div class=\"projection\" style=\"margin-top:8px\"><h2>🎯 ${tituloProyeccion}</h2></div><div class=\"projection grid cols-4\" style="gap:16px">
         <div><div class="muted">Meta mensual</div><div style="font-size:1.6rem;font-weight:800">${fmtCurrency(p.metaMensual)}</div></div>
         <div><div class="muted">Ventas a la fecha</div><div style="font-size:1.6rem;font-weight:800">${fmtCurrency(p.ventasMes)}</div></div>
         <div><div class="muted">Proyección</div><div style="font-size:1.6rem;font-weight:800">${fmtCurrency(p.proyeccion)}</div><div>${(p.probabilidad||0).toFixed(0)}% prob.</div></div>
@@ -414,14 +447,15 @@
 
       ${a.clientesInactivos.length? `<div class="warn" style="margin-top:16px"><b>⚠ Clientes inactivos (${CONFIG.diasClienteInactivo}+ días):</b><br>${a.clientesInactivos.slice(0,5).map(c=>`• ${c.nombre} — ${c.dias} días — ${fmtCurrency(c.total)}`).join('<br>')}</div>` : ''}
 
-      <div class="grid cols-2" style="margin-top:16px">
-        <div class="card"><h3>Top 5 Clientes</h3><canvas id="chartTopClientes"></canvas></div>
+      <div class=\"grid cols-2\" style=\"margin-top:16px\">$1
+        <div class=\"card\"><h3>Top 5 Prod. por Utilidad</h3><canvas id=\"chartTopUtilidad\"></canvas></div>
+      </div>
         <div class="card"><h3>Top 5 Productos</h3><canvas id="chartTopProductos"></canvas></div>
       </div>
     `
 
     // Charts
-    setTimeout(()=>{ drawTopClientes(); drawTopProductos() }, 50)
+    setTimeout(()=>{ drawTopClientes(); drawTopProductos(); drawTopUtilidad(); }, 50)
   }
 
   function drawTopClientes(){
@@ -438,6 +472,15 @@
     charts.topProductos && charts.topProductos.destroy()
     charts.topProductos = new Chart(el, { type:'bar', data, options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>fmtCurrency(v) } } } } })
   }
+  function drawTopUtilidad(){
+    const el = document.getElementById('chartTopUtilidad'); if(!el) return
+    const utilByProd = new Map()
+    for(const r of filtered){ if(!r.producto || r.utilidad==null) continue; utilByProd.set(r.producto, (utilByProd.get(r.producto)||0) + r.utilidad) }
+    const arr = [...utilByProd.entries()].map(([nombre,util])=>({nombre,util})).sort((a,b)=>b.util-a.util).slice(0,5)
+    const data = { labels: arr.map(x=>x.nombre.slice(0,30)), datasets:[{ label:'Utilidad', data: arr.map(x=>x.util) }] }
+    charts.topUtil && charts.topUtil.destroy()
+    charts.topUtil = new Chart(el, { type:'bar', data, options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ callback: v=>fmtCurrency(v) } } } } })
+  }
 
   function renderVentas(){
     const a = analytics
@@ -452,7 +495,7 @@
     const el = document.getElementById('chartEvo'); if(!el) return
     const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
     const v24 = Array(12).fill(0), v25 = Array(12).fill(0)
-    for (const r of allData){ if(!r.numFactura) continue; if(r.año===2024) v24[r.mes-1]+=r.total; if(r.año===2025) v25[r.mes-1]+=r.total }
+    for (const r of allData){ if(!r.numFactura) continue; if(r.año===2024) v24[r.mes-1]+= (r[AMOUNT_FIELD]||0); if(r.año===2025) v25[r.mes-1]+= (r[AMOUNT_FIELD]||0) }
     charts.evo && charts.evo.destroy()
     charts.evo = new Chart(el, { type:'line', data:{ labels: meses, datasets:[{label:'2024',data:v24},{label:'2025',data:v25}] }, options:{ scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>fmtCurrency(v) } } } } })
   }
@@ -533,5 +576,48 @@
      - Si el Excel crece mucho: mover a API backend que entregue JSON (opcional)
      - O usar Excel API (Graph) para rango acotado
   -->
+<script>
+  // === Carga del archivo de COSTOS (mismo token) ===
+  async function maybeLoadCosts(token){
+    try{
+      const c = CONFIG.costs; if(!c?.shareUrl){ costMap = new Map(); return }
+      const encoded = 'u!' + btoa(c.shareUrl).replace(/=+/g,'').replace(/\//g,'_').replace(/\+/g,'-')
+      const metaRes = await fetch(`https://graph.microsoft.com/v1.0/shares/${encoded}/driveItem`, { headers:{ Authorization:`Bearer ${token}` } })
+      if(!metaRes.ok) throw new Error('No se pudo obtener metadata de COSTOS ('+metaRes.status+')')
+      const meta = await metaRes.json()
+      const dl = await fetch(`https://graph.microsoft.com/v1.0/drives/${meta.parentReference.driveId}/items/${meta.id}/content`, { headers:{ Authorization:`Bearer ${token}` } })
+      if(!dl.ok) throw new Error('No se pudo descargar COSTOS ('+dl.status+')')
+      const buf = await dl.arrayBuffer()
+      const wb = XLSX.read(buf, { type:'array' })
+
+      // 1) Tabla de códigos (nombre -> código)
+      const wsCodes = pickSheet(wb, c.codesSheet)
+      const rowsCodes = XLSX.utils.sheet_to_json(wsCodes, { defval: null })
+      const nameToCode = new Map()
+      for (const r of rowsCodes){
+        const code = (findCol(r, c.columns.code_code)||'').toString().trim()
+        const pname = (findCol(r, c.columns.code_product)||'').toString().trim()
+        if (code && pname) nameToCode.set(pname.toUpperCase(), code)
+      }
+
+      // 2) Precios (producto/código -> costo)
+      const wsPrice = pickSheet(wb, c.priceSheet)
+      const rowsPrice = XLSX.utils.sheet_to_json(wsPrice, { defval: null })
+      const m = new Map()
+      for (const r of rowsPrice){
+        const codeDirect = (findCol(r, c.columns.price_code)||'').toString().trim()
+        const pname = (findCol(r, c.columns.price_product)||'').toString().trim()
+        const costRaw = findCol(r, c.columns.price_cost)
+        const costo = parseFloat(String(costRaw||'').replace(/[$,()]/g,''))
+        if (isNaN(costo)) continue
+        let key = codeDirect
+        if (!key && pname){ key = nameToCode.get(pname.toUpperCase()) || '' }
+        if (!key) continue
+        m.set(key, { costo })
+      }
+      costMap = m
+    }catch(e){ console.warn('COSTOS no cargado:', e.message); costMap = new Map() }
+  }
+</script>
 </body>
 </html>
