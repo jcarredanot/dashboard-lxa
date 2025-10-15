@@ -493,16 +493,25 @@
     function calculateMetas() {
         var ventas2024 = 0;
         var ventas2025 = 0;
+        var ventasPorAño = {};
         
         for (var i = 0; i < allData.length; i++) {
             if (allData[i].numFactura) {
-                if (allData[i].año === 2024) {
+                var año = allData[i].año;
+                if (!ventasPorAño[año]) ventasPorAño[año] = 0;
+                ventasPorAño[año] += allData[i].total;
+                
+                if (año === 2024) {
                     ventas2024 += allData[i].total;
-                } else if (allData[i].año === 2025) {
+                } else if (año === 2025) {
                     ventas2025 += allData[i].total;
                 }
             }
         }
+        
+        console.log('Ventas por año:', ventasPorAño);
+        console.log('Ventas 2024:', ventas2024);
+        console.log('Ventas 2025:', ventas2025);
         
         var meta2025 = ventas2024 * (1 + CONFIG.metaCrecimiento2025);
         var avance = meta2025 > 0 ? (ventas2025 / meta2025) * 100 : 0;
@@ -513,6 +522,7 @@
         analytics.meta2025 = meta2025;
         analytics.avanceVsMeta = avance;
         analytics.crecimientoAnual = crecimiento;
+        analytics.ventasPorAño = ventasPorAño;
     }
 
     // Análisis de clientes
@@ -636,17 +646,19 @@
         var diasDelMes = new Date(añoActual, mesActual, 0).getDate();
         
         var ventasMes = 0;
+        
+        // IMPORTANTE: Buscar en allData (sin filtro) para datos del mes actual
         for (var i = 0; i < allData.length; i++) {
             if (allData[i].año === añoActual && allData[i].mes === mesActual && allData[i].numFactura) {
                 ventasMes += allData[i].total;
             }
         }
         
-        var promedioDiario = ventasMes / diaActual;
+        var promedioDiario = diaActual > 0 ? ventasMes / diaActual : 0;
         var proyeccion = promedioDiario * diasDelMes;
         var metaMensual = analytics.meta2025 / 12;
         var diasRestantes = diasDelMes - diaActual;
-        var ventasNecesarias = diasRestantes > 0 ? (metaMensual - ventasMes) / diasRestantes : 0;
+        var ventasNecesarias = diasRestantes > 0 ? Math.max(0, (metaMensual - ventasMes) / diasRestantes) : 0;
         
         analytics.proyeccion = {
             ventasMes: ventasMes,
@@ -693,10 +705,37 @@
     function renderScorecard() {
         var html = '';
         
+        // Mostrar información del filtro actual
+        var selectedYear = document.getElementById('yearFilter').value;
+        var selectedMonth = document.getElementById('monthFilter').value;
+        var filtroActivo = selectedYear !== 'all' || selectedMonth !== 'all';
+        
+        // Mostrar resumen de años disponibles
+        if (analytics.ventasPorAño) {
+            html += '<div class="card" style="background: #f0f9ff; border-left: 4px solid #3b82f6;">';
+            html += '<h3 style="margin-bottom: 10px;">📊 Datos Disponibles por Año</h3>';
+            html += '<div style="display: flex; gap: 20px; flex-wrap: wrap;">';
+            for (var año in analytics.ventasPorAño) {
+                html += '<div><strong>' + año + ':</strong> ' + formatCurrency(analytics.ventasPorAño[año]) + '</div>';
+            }
+            html += '</div></div>';
+        }
+        
+        if (filtroActivo) {
+            html += '<div class="card" style="background: #fffbeb; border-left: 4px solid #f59e0b;">';
+            html += '<p><strong>📌 Filtro activo:</strong> Mostrando datos de ';
+            if (selectedYear !== 'all') html += 'año ' + selectedYear + ' ';
+            if (selectedMonth !== 'all') {
+                var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                html += meses[parseInt(selectedMonth) - 1];
+            }
+            html += '. Para ver todos los datos, selecciona "Todos" en ambos filtros.</p></div>';
+        }
+        
         // Proyección del mes
         var p = analytics.proyeccion;
         html += '<div class="projection-card">';
-        html += '<h2>🎯 Proyección del Mes</h2>';
+        html += '<h2>🎯 Proyección del Mes (Octubre 2025)</h2>';
         html += '<div class="projection-grid">';
         html += '<div class="projection-item"><h4>Meta Mensual</h4><div class="value">' + formatCurrency(p.metaMensual) + '</div></div>';
         html += '<div class="projection-item"><h4>Ventas a la Fecha</h4><div class="value">' + formatCurrency(p.ventasMes) + '</div></div>';
@@ -706,13 +745,13 @@
         
         // KPIs principales
         html += '<div class="kpis">';
-        html += '<div class="kpi-card"><h3>Ventas Totales</h3><div class="value">' + formatCurrency(analytics.totalVentas) + '</div></div>';
+        html += '<div class="kpi-card"><h3>Ventas Totales' + (filtroActivo ? ' (filtradas)' : '') + '</h3><div class="value">' + formatCurrency(analytics.totalVentas) + '</div></div>';
         html += '<div class="kpi-card"><h3>Facturas</h3><div class="value">' + analytics.numFacturas + '</div></div>';
         html += '<div class="kpi-card"><h3>Ticket Promedio</h3><div class="value">' + formatCurrency(analytics.ticketPromedio) + '</div></div>';
         html += '<div class="kpi-card"><h3>Total Clientes</h3><div class="value">' + analytics.totalClientes + '</div></div>';
         html += '</div>';
         
-        // Metas
+        // Metas (siempre desde allData)
         html += '<div class="kpis">';
         html += '<div class="kpi-card"><h3>Ventas 2024</h3><div class="value">' + formatCurrency(analytics.ventas2024) + '</div></div>';
         html += '<div class="kpi-card"><h3>Meta 2025 (+15%)</h3><div class="value">' + formatCurrency(analytics.meta2025) + '</div></div>';
@@ -725,19 +764,22 @@
             html += '<div class="alert-card"><h3>⚠️ Clientes Inactivos (' + CONFIG.diasClienteInactivo + '+ días)</h3>';
             for (var i = 0; i < Math.min(5, analytics.clientesInactivos.length); i++) {
                 var c = analytics.clientesInactivos[i];
-                html += '<div class="alert-item">• ' + c.nombre + ' - ' + c.diasSinCompra + ' días sin comprar</div>';
+                html += '<div class="alert-item">• ' + c.nombre + ' - ' + c.diasSinCompra + ' días sin comprar - ' + formatCurrency(c.total) + ' en ventas</div>';
             }
             html += '</div>';
         }
         
-        // Top 5 clientes
-        html += '<div class="chart-card"><h3>Top 5 Clientes</h3>';
-        html += '<canvas id="chartTopClientes" style="max-height: 300px;"></canvas></div>';
+        // Gráficas
+        html += '<div class="charts">';
+        html += '<div class="chart-card"><h3>Top 5 Clientes</h3><canvas id="chartTopClientes"></canvas></div>';
+        html += '<div class="chart-card"><h3>Top 5 Productos</h3><canvas id="chartTopProductos"></canvas></div>';
+        html += '</div>';
         
         document.getElementById('tab-scorecard').innerHTML = html;
         
         setTimeout(function() {
             createTopClientesChart();
+            createTopProductosChart();
         }, 100);
     }
 
@@ -764,6 +806,49 @@
                     label: 'Ventas',
                     data: data,
                     backgroundColor: '#5e72e4'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createTopProductosChart() {
+        var ctx = document.getElementById('chartTopProductos');
+        if (!ctx) return;
+        
+        var top5 = analytics.productos.slice(0, 5);
+        var labels = [];
+        var data = [];
+        
+        for (var i = 0; i < top5.length; i++) {
+            labels.push(top5[i].nombre.substring(0, 30));
+            data.push(top5[i].valor);
+        }
+        
+        if (charts.topProductos) charts.topProductos.destroy();
+        
+        charts.topProductos = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Ventas',
+                    data: data,
+                    backgroundColor: '#10b981'
                 }]
             },
             options: {
