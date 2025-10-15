@@ -1,3 +1,19 @@
+<!--
+LXA CEO Dashboard — Migración completa a ChatGPT
+
+Este documento contiene:
+1) Plan de migración paso a paso
+2) Requisitos (Azure AD, permisos, seguridad)
+3) Estructura del repo
+4) Variables de configuración
+5) Código HTML/JS listo para GitHub Pages (msal-browser + Microsoft Graph + SheetJS + Chart.js)
+6) Parser robusto de Excel (incluye fechas seriales, nombres de columnas variables, tolerancia de hoja)
+7) Checklist de despliegue y prueba
+
+► Usa este archivo como index.html en tu repositorio (GitHub Pages)
+► Sustituye los valores de CONFIG y MSAL (clientId/tenantId/shareUrl)
+
+-->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -159,7 +175,7 @@
     },
     cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
   }
-  let msalInstance;
+  const msalInstance = new msal.PublicClientApplication(msalConfig)
   const GRAPH_SCOPES_READ = ['User.Read','Files.Read'] // solo lectura
 
   // ========================
@@ -227,10 +243,8 @@
   // ========================
   // 5) Auth
   // Inicializa MSAL cuando el DOM y los scripts diferidos (msal-browser) ya cargaron
-  document.addEventListener('DOMContentLoaded', () => {
-    try {
-      msalInstance = new msal.PublicClientApplication(msalConfig);
-      msalInstance.handleRedirectPromise().then(resp=>{ if(resp){ afterLogin(resp.account) } });
+  // Inicialización directa (msal-browser se carga con defer antes de este script)
+  msalInstance.handleRedirectPromise().then(resp=>{ if(resp){ afterLogin(resp.account) } }).catch(e=>console.error('handleRedirectPromise error', e))
     } catch (e) {
       console.error('Error inicializando MSAL:', e);
     }
@@ -238,13 +252,18 @@
 
   async function login(){
     try{
-      if(!msalInstance) throw new Error('MSAL no inicializado aún');
+      console.log('[LXA] login clicked')
       const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES_READ })
       afterLogin(resp.account)
     }catch(e){ alert('Error de inicio de sesión: '+e.message) }
   }
-  function logout(){ if(msalInstance) msalInstance.logoutPopup() }
+  function logout(){ msalInstance.logoutPopup() }
   function afterLogin(account){
+    byId('loginCard').classList.add('hidden')
+    byId('app').classList.remove('hidden')
+    byId('userInfo').textContent = 'Usuario: '+(account?.name||'')
+    loadData()
+  }{
     byId('loginCard').classList.add('hidden')
     byId('app').classList.remove('hidden')
     byId('userInfo').textContent = 'Usuario: '+(account?.name||'')
