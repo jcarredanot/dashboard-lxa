@@ -261,6 +261,10 @@
             document.getElementById('loginCard').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
             document.getElementById('userInfo').textContent = 'Usuario: ' + response.account.name;
+            
+            // Mostrar mensaje de carga
+            document.getElementById('tab-scorecard').innerHTML = '<div class="card"><h3>Cargando datos...</h3><p>Por favor espera mientras se cargan los datos desde SharePoint.</p></div>';
+            
             loadData();
         }).catch(function(error) {
             alert('Error al iniciar sesión: ' + error);
@@ -276,43 +280,76 @@
     // ============================================
     function loadData() {
         var accounts = msalInstance.getAllAccounts();
-        if (accounts.length === 0) return;
+        if (accounts.length === 0) {
+            alert('No hay cuentas activas');
+            return;
+        }
 
         // Obtener token de acceso
         msalInstance.acquireTokenSilent({
             scopes: ['Files.Read'],
             account: accounts[0]
         }).then(function(response) {
+            console.log('Token obtenido correctamente');
             var token = response.accessToken;
             
             // URL del archivo de SharePoint
             var sharingUrl = 'https://laidealmx-my.sharepoint.com/:x:/g/personal/carlosc_laideal_com_mx/EY8QlfTcVY9Kq3TQk3XcDusB6QsET2u1DfBFDnclSLBhXw';
             var encodedUrl = 'u!' + btoa(sharingUrl).replace(/=/g, '').replace(/\//g, '_').replace(/\+/g, '-');
             
+            console.log('Conectando a SharePoint...');
+            
             // Paso 1: Obtener metadata del archivo
             fetch('https://graph.microsoft.com/v1.0/shares/' + encodedUrl + '/driveItem', {
                 headers: { 'Authorization': 'Bearer ' + token }
             }).then(function(res) {
+                console.log('Metadata obtenida, status:', res.status);
+                if (!res.ok) throw new Error('Error al obtener metadata: ' + res.status);
                 return res.json();
             }).then(function(shareData) {
+                console.log('Descargando archivo...');
                 // Paso 2: Descargar el contenido del archivo
                 return fetch('https://graph.microsoft.com/v1.0/drives/' + shareData.parentReference.driveId + '/items/' + shareData.id + '/content', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
             }).then(function(res) {
+                console.log('Archivo descargado, status:', res.status);
+                if (!res.ok) throw new Error('Error al descargar archivo: ' + res.status);
                 return res.arrayBuffer();
             }).then(function(buffer) {
+                console.log('Procesando Excel...');
                 // Paso 3: Leer el Excel con SheetJS
                 var workbook = XLSX.read(buffer, { type: 'array' });
+                console.log('Hojas disponibles:', workbook.SheetNames);
+                
                 var worksheet = workbook.Sheets['LXA'];
+                if (!worksheet) {
+                    throw new Error('No se encontró la hoja LXA en el archivo');
+                }
+                
                 var jsonData = XLSX.utils.sheet_to_json(worksheet);
+                console.log('Registros encontrados:', jsonData.length);
                 
                 // Paso 4: Procesar y mostrar datos
                 processData(jsonData);
                 document.getElementById('lastUpdate').textContent = 'Última actualización: ' + new Date().toLocaleString('es-MX');
+                console.log('Datos procesados correctamente');
             }).catch(function(error) {
-                alert('Error al cargar datos: ' + error.message);
+                console.error('Error completo:', error);
+                var errorMsg = '<div class="card" style="background: #fee; border-left: 4px solid #c33; padding: 20px;">';
+                errorMsg += '<h3 style="color: #c33;">Error al cargar datos</h3>';
+                errorMsg += '<p><strong>Mensaje:</strong> ' + error.message + '</p>';
+                errorMsg += '<p><strong>Sugerencias:</strong></p>';
+                errorMsg += '<ul>';
+                errorMsg += '<li>Verifica que la URL de SharePoint sea correcta</li>';
+                errorMsg += '<li>Asegúrate de tener permisos para acceder al archivo</li>';
+                errorMsg += '<li>Revisa la consola del navegador (F12) para más detalles</li>';
+                errorMsg += '</ul></div>';
+                document.getElementById('tab-scorecard').innerHTML = errorMsg;
             });
+        }).catch(function(error) {
+            console.error('Error al obtener token:', error);
+            alert('Error al obtener token de acceso: ' + error.message);
         });
     }
 
@@ -320,6 +357,7 @@
     // PASO 4: PROCESAR DATOS DEL EXCEL
     // ============================================
     function processData(data) {
+        console.log('Iniciando procesamiento de', data.length, 'registros...');
         allData = [];
         
         // Convertir cada fila del Excel a un formato útil
@@ -358,10 +396,19 @@
             }
         }
         
+        console.log('Datos procesados:', allData.length, 'registros válidos');
+        
+        if (allData.length === 0) {
+            document.getElementById('tab-scorecard').innerHTML = '<div class="card"><h3 style="color: #c33;">⚠️ No se encontraron datos válidos</h3><p>El archivo se cargó pero no contiene datos procesables. Verifica que:</p><ul><li>La columna "Salida" tenga fechas válidas</li><li>Las columnas de datos existan y tengan el formato correcto</li></ul></div>';
+            return;
+        }
+        
         filteredData = allData;
         updateYearFilter();
         calculateAnalytics();
         renderAllTabs();
+        
+        console.log('Dashboard renderizado correctamente');
     }
 
     // ============================================
