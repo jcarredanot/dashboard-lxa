@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <title>LXA — Prueba de Login MSAL</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- MSAL desde jsDelivr (alternativa confiable) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/dist/msal-browser.min.js"></script>
   <style>
     body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f7fb}
@@ -25,7 +24,6 @@
   </div>
 
   <script>
-    // --- CONFIG MSAL ---
     const msalConfig = {
       auth: {
         clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
@@ -36,12 +34,10 @@
     };
     const GRAPH_SCOPES = ['User.Read','Files.Read'];
 
-    // --- util ---
     const $ = (id)=>document.getElementById(id);
     const log = (msg)=>{ console.log(msg); $('status').textContent = 'Estado: ' + msg; };
     const show = (obj)=> $('out').textContent = typeof obj==='string' ? obj : JSON.stringify(obj, null, 2);
 
-    // --- INICIALIZACIÓN MSAL ---
     let msalInstance;
     window.addEventListener('load', ()=>{
       try {
@@ -59,7 +55,6 @@
       }
     });
 
-    // --- BOTONES ---
     $('btnLogin').onclick = async ()=>{
       try{
         log('Iniciando loginPopup…');
@@ -76,7 +71,6 @@
       }catch(e){ alert('Error logout: '+e.message); console.error(e); }
     };
 
-    // --- POST LOGIN: prueba de token silencioso y llamada a /me ---
     async function afterLogin(account){
       try{
         const tokenResp = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
