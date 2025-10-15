@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard LXA</title>
+    <title>Dashboard LXA - CEO</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
@@ -15,7 +15,7 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1600px; margin: 0 auto; }
         .header {
             background: white;
             padding: 30px;
@@ -49,6 +49,7 @@
         }
         .btn:hover { background: #4c63d2; transform: translateY(-2px); }
         .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-small { padding: 8px 20px; font-size: 0.9em; }
         .loading {
             text-align: center;
             padding: 100px;
@@ -87,6 +88,27 @@
             font-size: 1em;
             cursor: pointer;
         }
+        .tabs {
+            background: white;
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .tab:hover { background: #f0f0f0; }
+        .tab.active { background: #5e72e4; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         .kpis {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -101,6 +123,9 @@
         }
         .kpi-card h3 { color: #666; font-size: 0.9em; margin-bottom: 10px; text-transform: uppercase; }
         .kpi-card .value { color: #333; font-size: 2em; font-weight: bold; }
+        .kpi-card .trend { font-size: 0.9em; margin-top: 8px; }
+        .kpi-card .trend.up { color: #10b981; }
+        .kpi-card .trend.down { color: #ef4444; }
         .charts {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
@@ -112,7 +137,7 @@
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            height: 450px;
+            min-height: 450px;
         }
         .chart-card h3 { color: #333; margin-bottom: 20px; font-size: 1.3em; }
         .chart-container { height: 350px; position: relative; }
@@ -139,6 +164,34 @@
             color: #333;
         }
         tr:hover { background: #f8f9fa; }
+        .alert-card {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .alert-card h3 { color: #991b1b; margin-bottom: 10px; }
+        .alert-item { color: #7f1d1d; margin: 8px 0; }
+        .success-card {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .success-card h3 { color: #065f46; margin-bottom: 10px; }
+        .success-item { color: #064e3b; margin: 8px 0; }
+        .badge { 
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .badge.A { background: #dcfce7; color: #166534; }
+        .badge.B { background: #fef3c7; color: #92400e; }
+        .badge.C { background: #fee2e2; color: #991b1b; }
         .error {
             background: #fee;
             color: #c33;
@@ -171,14 +224,13 @@
     <div class="container">
         <div id="loginSection" class="login-section">
             <h2>🔐 Dashboard LXA</h2>
-            <p>Inicia sesión con tu cuenta de Microsoft para acceder al dashboard en tiempo real</p>
+            <p>Inicia sesión con tu cuenta de Microsoft</p>
             <button class="btn" onclick="signIn()">Iniciar Sesión con Microsoft</button>
         </div>
 
         <div id="loadingSection" class="loading" style="display: none;">
             <div class="loading-spinner"></div>
-            <h3>Cargando datos desde SharePoint...</h3>
-            <p>Por favor espera un momento</p>
+            <h3>Cargando datos...</h3>
         </div>
 
         <div id="dashboardSection" style="display: none;">
@@ -188,19 +240,19 @@
             </div>
 
             <div class="header">
-                <h1>📊 Dashboard de Ventas LXA</h1>
-                <p>Datos actualizados en tiempo real desde SharePoint</p>
+                <h1>📊 Dashboard Ejecutivo LXA</h1>
+                <p>Análisis en tiempo real para toma de decisiones</p>
                 <small id="lastUpdate"></small>
             </div>
 
             <div class="filters">
                 <label><strong>Año:</strong></label>
                 <select id="yearFilter" onchange="applyFilters()">
-                    <option value="all">Todos los años</option>
+                    <option value="all">Todos</option>
                 </select>
                 <label><strong>Mes:</strong></label>
                 <select id="monthFilter" onchange="applyFilters()">
-                    <option value="all">Todos los meses</option>
+                    <option value="all">Todos</option>
                     <option value="1">Enero</option>
                     <option value="2">Febrero</option>
                     <option value="3">Marzo</option>
@@ -214,40 +266,24 @@
                     <option value="11">Noviembre</option>
                     <option value="12">Diciembre</option>
                 </select>
-                <button class="btn" onclick="loadData()">🔄 Actualizar</button>
+                <button class="btn btn-small" onclick="loadData()">🔄 Actualizar</button>
             </div>
 
-            <div class="kpis" id="kpis"></div>
-            
-            <div class="charts">
-                <div class="chart-card">
-                    <h3>Ventas Mensuales</h3>
-                    <div class="chart-container">
-                        <canvas id="ventasChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <h3>Top 10 Vendedores</h3>
-                    <div class="chart-container">
-                        <canvas id="vendedoresChart"></canvas>
-                    </div>
-                </div>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('resumen')">📋 Resumen Ejecutivo</div>
+                <div class="tab" onclick="switchTab('ventas')">📈 Ventas</div>
+                <div class="tab" onclick="switchTab('clientes')">👥 Clientes</div>
+                <div class="tab" onclick="switchTab('productos')">📦 Productos</div>
+                <div class="tab" onclick="switchTab('vendedores')">🎯 Vendedores</div>
+                <div class="tab" onclick="switchTab('geografia')">🗺️ Geografía</div>
             </div>
-            
-            <div class="table-card">
-                <h3>Ranking Completo de Vendedores</h3>
-                <div id="rankingVendedores"></div>
-            </div>
-            
-            <div class="table-card">
-                <h3>Top 10 Clientes</h3>
-                <div id="topClientes"></div>
-            </div>
-            
-            <div class="table-card">
-                <h3>Top 10 Productos</h3>
-                <div id="topProductos"></div>
-            </div>
+
+            <div id="tab-resumen" class="tab-content active"></div>
+            <div id="tab-ventas" class="tab-content"></div>
+            <div id="tab-clientes" class="tab-content"></div>
+            <div id="tab-productos" class="tab-content"></div>
+            <div id="tab-vendedores" class="tab-content"></div>
+            <div id="tab-geografia" class="tab-content"></div>
         </div>
 
         <div id="errorSection" style="display: none;"></div>
@@ -273,6 +309,16 @@
         const msalInstance = new msal.PublicClientApplication(msalConfig);
         let allData = [];
         let filteredData = [];
+        let analytics = {};
+        let charts = {};
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
 
         async function signIn() {
             try {
@@ -291,15 +337,9 @@
 
         async function getAccessToken() {
             const accounts = msalInstance.getAllAccounts();
-            if (accounts.length === 0) {
-                throw new Error('No hay sesión activa');
-            }
+            if (accounts.length === 0) throw new Error('No hay sesión activa');
 
-            const request = {
-                ...loginRequest,
-                account: accounts[0]
-            };
-
+            const request = { ...loginRequest, account: accounts[0] };
             const response = await msalInstance.acquireTokenSilent(request);
             return response.accessToken;
         }
@@ -307,7 +347,6 @@
         async function loadData() {
             document.getElementById('loadingSection').style.display = 'block';
             document.getElementById('dashboardSection').style.display = 'none';
-            document.getElementById('errorSection').style.display = 'none';
 
             try {
                 const token = await getAccessToken();
@@ -320,9 +359,7 @@
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 );
 
-                if (!shareResponse.ok) {
-                    throw new Error(`Error al acceder al archivo: ${shareResponse.status}`);
-                }
+                if (!shareResponse.ok) throw new Error(`Error: ${shareResponse.status}`);
 
                 const shareData = await shareResponse.json();
                 
@@ -331,17 +368,13 @@
                     { headers: { 'Authorization': `Bearer ${token}` } }
                 );
 
-                if (!contentResponse.ok) {
-                    throw new Error(`Error al descargar: ${contentResponse.status}`);
-                }
+                if (!contentResponse.ok) throw new Error(`Error: ${contentResponse.status}`);
 
                 const arrayBuffer = await contentResponse.arrayBuffer();
                 const workbook = XLSX.read(arrayBuffer, { type: 'array' });
                 
                 const worksheet = workbook.Sheets['LXA'];
-                if (!worksheet) {
-                    throw new Error('No se encontró la hoja "LXA"');
-                }
+                if (!worksheet) throw new Error('No se encontró la hoja "LXA"');
 
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
                 
@@ -349,7 +382,8 @@
                 filteredData = allData;
                 
                 updateYearFilter();
-                renderDashboard();
+                calculateAnalytics();
+                renderAllTabs();
                 
                 document.getElementById('loadingSection').style.display = 'none';
                 document.getElementById('dashboardSection').style.display = 'block';
@@ -368,13 +402,10 @@
                 const salidaValue = row['Salida'];
                 
                 if (typeof salidaValue === 'string' && salidaValue.includes('/')) {
-                    const fechaParts = salidaValue.split('/');
-                    if (fechaParts.length === 3) {
-                        fecha = new Date(fechaParts[2], fechaParts[1] - 1, fechaParts[0]);
-                    }
+                    const parts = salidaValue.split('/');
+                    if (parts.length === 3) fecha = new Date(parts[2], parts[1] - 1, parts[0]);
                 } else if (typeof salidaValue === 'number') {
-                    const excelEpoch = new Date(1899, 11, 30);
-                    fecha = new Date(excelEpoch.getTime() + salidaValue * 86400000);
+                    fecha = new Date(new Date(1899, 11, 30).getTime() + salidaValue * 86400000);
                 } else if (salidaValue instanceof Date) {
                     fecha = salidaValue;
                 }
@@ -394,10 +425,10 @@
                     año: fecha ? fecha.getFullYear() : null,
                     mes: fecha ? fecha.getMonth() + 1 : null,
                     fecha: fecha,
+                    diaSemana: fecha ? fecha.getDay() : null,
                     numFactura: row['#'] || '',
                     cliente: normalizarCliente(row['Cliente']),
                     producto: row['Producto(s)'],
-                    precio: parsePrice(row['Precio']),
                     cantidad: parseInt(row['Cantidad']) || 0,
                     subtotal2: parsePrice(row['Subtotal 2']),
                     total: parsePrice(row['Total']),
@@ -410,7 +441,7 @@
         function updateYearFilter() {
             const years = [...new Set(allData.map(row => row.año))].sort();
             const yearSelect = document.getElementById('yearFilter');
-            yearSelect.innerHTML = '<option value="all">Todos los años</option>';
+            yearSelect.innerHTML = '<option value="all">Todos</option>';
             years.forEach(year => {
                 yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
             });
@@ -426,128 +457,524 @@
                 return true;
             });
 
-            renderDashboard();
+            calculateAnalytics();
+            renderAllTabs();
         }
 
-        function renderDashboard() {
+        function calculateAnalytics() {
             const ventasConFactura = filteredData.filter(row => row.numFactura !== '');
             const totalVentas = ventasConFactura.reduce((sum, row) => sum + row.total, 0);
             const numFacturas = ventasConFactura.length;
-            const ticketPromedio = numFacturas > 0 ? totalVentas / numFacturas : 0;
-
-            document.getElementById('kpis').innerHTML = `
-                <div class="kpi-card">
-                    <h3>Ventas Totales</h3>
-                    <div class="value">${formatCurrency(totalVentas)}</div>
-                </div>
-                <div class="kpi-card">
-                    <h3>Facturas</h3>
-                    <div class="value">${numFacturas.toLocaleString()}</div>
-                </div>
-                <div class="kpi-card">
-                    <h3>Ticket Promedio</h3>
-                    <div class="value">${formatCurrency(ticketPromedio)}</div>
-                </div>
-            `;
-
-            renderTopClientes();
-            renderTopProductos();
-            renderRankingVendedores();
-            renderCharts();
+            
+            analytics = {
+                totalVentas,
+                numFacturas,
+                ticketPromedio: numFacturas > 0 ? totalVentas / numFacturas : 0,
+                ...calculateComparativas(),
+                ...calculateClientAnalysis(),
+                ...calculateProductAnalysis(),
+                ...calculateVendedorAnalysis(),
+                ...calculateGeografiaAnalysis(),
+                ...calculateDiasSemanaAnalysis()
+            };
         }
 
-        function renderRankingVendedores() {
-            const ventasPorVendedor = {};
-            filteredData.forEach(row => {
-                if (row.numFactura !== '' && row.vendedor) {
-                    ventasPorVendedor[row.vendedor] = (ventasPorVendedor[row.vendedor] || 0) + row.total;
-                }
-            });
+        function calculateComparativas() {
+            const now = new Date();
+            const mesActual = now.getMonth() + 1;
+            const añoActual = now.getFullYear();
 
-            const ranking = Object.entries(ventasPorVendedor)
-                .map(([nombre, total]) => ({ nombre, total }))
-                .sort((a, b) => b.total - a.total);
+            const ventasMesActual = allData.filter(r => r.año === añoActual && r.mes === mesActual && r.numFactura !== '')
+                .reduce((sum, r) => sum + r.total, 0);
+            
+            const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
+            const añoMesAnterior = mesActual === 1 ? añoActual - 1 : añoActual;
+            const ventasMesAnterior = allData.filter(r => r.año === añoMesAnterior && r.mes === mesAnterior && r.numFactura !== '')
+                .reduce((sum, r) => sum + r.total, 0);
+            
+            const crecimientoMensual = ventasMesAnterior > 0 
+                ? ((ventasMesActual - ventasMesAnterior) / ventasMesAnterior) * 100 
+                : 0;
 
-            let html = '<table><thead><tr><th>#</th><th>Vendedor</th><th style="text-align: right;">Total</th></tr></thead><tbody>';
-            ranking.forEach((v, idx) => {
-                html += `<tr><td><strong>${idx + 1}</strong></td><td>${v.nombre}</td><td style="text-align: right;">${formatCurrency(v.total)}</td></tr>`;
-            });
-            html += '</tbody></table>';
-            document.getElementById('rankingVendedores').innerHTML = html;
+            const ventasAñoActual = allData.filter(r => r.año === añoActual && r.numFactura !== '')
+                .reduce((sum, r) => sum + r.total, 0);
+            const ventasAñoAnterior = allData.filter(r => r.año === añoActual - 1 && r.numFactura !== '')
+                .reduce((sum, r) => sum + r.total, 0);
+            const crecimientoAnual = ventasAñoAnterior > 0 
+                ? ((ventasAñoActual - ventasAñoAnterior) / ventasAñoAnterior) * 100 
+                : 0;
+
+            return { crecimientoMensual, crecimientoAnual, ventasMesActual, ventasAñoActual };
         }
 
-        function renderTopClientes() {
+        function calculateClientAnalysis() {
             const clienteStats = {};
+            let totalVentasClientes = 0;
+
             filteredData.forEach(row => {
                 if (row.numFactura !== '') {
-                    clienteStats[row.cliente] = (clienteStats[row.cliente] || 0) + row.total;
+                    if (!clienteStats[row.cliente]) {
+                        clienteStats[row.cliente] = { total: 0, ultimaCompra: row.fecha };
+                    }
+                    clienteStats[row.cliente].total += row.total;
+                    if (row.fecha > clienteStats[row.cliente].ultimaCompra) {
+                        clienteStats[row.cliente].ultimaCompra = row.fecha;
+                    }
+                    totalVentasClientes += row.total;
                 }
             });
 
-            const topClientes = Object.entries(clienteStats)
-                .map(([nombre, total]) => ({ nombre, total }))
-                .sort((a, b) => b.total - a.total)
-                .slice(0, 10);
+            const clientesOrdenados = Object.entries(clienteStats)
+                .map(([nombre, data]) => ({ nombre, ...data }))
+                .sort((a, b) => b.total - a.total);
 
-            let html = '<table><thead><tr><th>Cliente</th><th style="text-align: right;">Total</th></tr></thead><tbody>';
-            topClientes.forEach(c => {
-                html += `<tr><td>${c.nombre}</td><td style="text-align: right;">${formatCurrency(c.total)}</td></tr>`;
+            let acumulado = 0;
+            let clientes80 = 0;
+            clientesOrdenados.forEach(c => {
+                acumulado += c.total;
+                if (acumulado <= totalVentasClientes * 0.8) clientes80++;
             });
-            html += '</tbody></table>';
-            document.getElementById('topClientes').innerHTML = html;
+
+            const pct80_20 = clientesOrdenados.length > 0 ? (clientes80 / clientesOrdenados.length) * 100 : 0;
+
+            const now = new Date();
+            const tresMe sesAtras = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            const clientesInactivos = clientesOrdenados.filter(c => c.ultimaCompra < tresMe sesAtras);
+
+            return { clientesOrdenados, pct80_20, clientesInactivos, clientes80 };
         }
 
-        function renderTopProductos() {
+        function calculateProductAnalysis() {
             const productoStats = {};
+            let totalVentasProductos = 0;
+
             filteredData.forEach(row => {
                 if (!productoStats[row.producto]) {
                     productoStats[row.producto] = { cantidad: 0, valor: 0 };
                 }
                 productoStats[row.producto].cantidad += row.cantidad;
                 productoStats[row.producto].valor += row.subtotal2;
+                totalVentasProductos += row.subtotal2;
             });
 
-            const topProductos = Object.entries(productoStats)
+            const productosOrdenados = Object.entries(productoStats)
                 .map(([nombre, stats]) => ({ nombre, ...stats }))
-                .sort((a, b) => b.valor - a.valor)
-                .slice(0, 10);
+                .sort((a, b) => b.valor - a.valor);
 
-            let html = '<table><thead><tr><th>Producto</th><th style="text-align: right;">Unidades</th><th style="text-align: right;">Valor</th></tr></thead><tbody>';
-            topProductos.forEach(p => {
-                html += `<tr><td>${p.nombre}</td><td style="text-align: right;">${p.cantidad}</td><td style="text-align: right;">${formatCurrency(p.valor)}</td></tr>`;
+            let acumulado = 0;
+            const productosConCategoria = productosOrdenados.map(p => {
+                acumulado += p.valor;
+                const pctAcumulado = (acumulado / totalVentasProductos) * 100;
+                let categoria = 'C';
+                if (pctAcumulado <= 80) categoria = 'A';
+                else if (pctAcumulado <= 95) categoria = 'B';
+                return { ...p, categoria, pctAcumulado };
             });
-            html += '</tbody></table>';
-            document.getElementById('topProductos').innerHTML = html;
+
+            return { productosConCategoria };
         }
 
-        function renderCharts() {
-            renderVentasChart();
-            renderVendedoresChart();
-        }
+        function calculateVendedorAnalysis() {
+            const vendedorStats = {};
 
-        function renderVentasChart() {
-            const ventasPorMes = {};
             filteredData.forEach(row => {
-                if (row.numFactura !== '') {
-                    const key = `${row.año}-${String(row.mes).padStart(2, '0')}`;
-                    ventasPorMes[key] = (ventasPorMes[key] || 0) + row.total;
+                if (row.vendedor) {
+                    if (!vendedorStats[row.vendedor]) {
+                        vendedorStats[row.vendedor] = { ventas: 0, facturas: new Set(), productos: 0 };
+                    }
+                    if (row.numFactura !== '') {
+                        vendedorStats[row.vendedor].ventas += row.total;
+                        vendedorStats[row.vendedor].facturas.add(row.numFactura);
+                    }
+                    vendedorStats[row.vendedor].productos += row.cantidad;
                 }
             });
 
-            const data = Object.entries(ventasPorMes)
-                .sort((a, b) => a[0].localeCompare(b[0]))
-                .slice(-12);
+            const vendedoresRanking = Object.entries(vendedorStats)
+                .map(([nombre, stats]) => ({
+                    nombre,
+                    ventas: stats.ventas,
+                    facturas: stats.facturas.size,
+                    ticketPromedio: stats.facturas.size > 0 ? stats.ventas / stats.facturas.size : 0,
+                    productosPorFactura: stats.facturas.size > 0 ? stats.productos / stats.facturas.size : 0
+                }))
+                .sort((a, b) => b.ventas - a.ventas);
 
-            const ctx = document.getElementById('ventasChart');
-            if (window.ventasChartInstance) window.ventasChartInstance.destroy();
+            return { vendedoresRanking };
+        }
+
+        function calculateGeografiaAnalysis() {
+            const estadoStats = {};
+            const now = new Date();
+            const añoActual = now.getFullYear();
+
+            allData.forEach(row => {
+                if (row.numFactura !== '' && row.estado) {
+                    if (!estadoStats[row.estado]) {
+                        estadoStats[row.estado] = { actual: 0, anterior: 0 };
+                    }
+                    if (row.año === añoActual) {
+                        estadoStats[row.estado].actual += row.total;
+                    } else if (row.año === añoActual - 1) {
+                        estadoStats[row.estado].anterior += row.total;
+                    }
+                }
+            });
+
+            const estadosConCrecimiento = Object.entries(estadoStats)
+                .map(([estado, data]) => ({
+                    estado,
+                    ventas: data.actual,
+                    crecimiento: data.anterior > 0 ? ((data.actual - data.anterior) / data.anterior) * 100 : 0
+                }))
+                .sort((a, b) => b.crecimiento - a.crecimiento);
+
+            return { estadosConCrecimiento };
+        }
+
+        function calculateDiasSemanaAnalysis() {
+            const diasStats = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
+            const diasNombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            filteredData.forEach(row => {
+                if (row.numFactura !== '' && row.diaSemana !== null) {
+                    diasStats[row.diaSemana] += row.total;
+                }
+            });
+
+            const diasOrdenados = Object.entries(diasStats)
+                .map(([dia, ventas]) => ({ dia: diasNombres[dia], ventas }))
+                .sort((a, b) => b.ventas - a.ventas);
+
+            return { diasOrdenados };
+        }
+
+        function renderAllTabs() {
+            renderTabResumen();
+            renderTabVentas();
+            renderTabClientes();
+            renderTabProductos();
+            renderTabVendedores();
+            renderTabGeografia();
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
+        }
+
+        function renderTabResumen() {
+            const tab = document.getElementById('tab-resumen');
             
-            window.ventasChartInstance = new Chart(ctx, {
-                type: 'line',
+            const buenosItems = [];
+            const alertasItems = [];
+
+            if (analytics.crecimientoMensual > 0) {
+                buenosItems.push(`Crecimiento mensual del ${analytics.crecimientoMensual.toFixed(1)}%`);
+            } else {
+                alertasItems.push(`Decrecimiento mensual del ${Math.abs(analytics.crecimientoMensual).toFixed(1)}%`);
+            }
+
+            if (analytics.crecimientoAnual > 0) {
+                buenosItems.push(`Crecimiento anual del ${analytics.crecimientoAnual.toFixed(1)}%`);
+            }
+
+            if (analytics.clientesInactivos.length > 0) {
+                alertasItems.push(`${analytics.clientesInactivos.length} clientes sin comprar en 3+ meses`);
+            }
+
+            if (analytics.pct80_20 < 30) {
+                buenosItems.push(`Baja concentración de clientes (${analytics.pct80_20.toFixed(0)}% genera el 80%)`);
+            } else {
+                alertasItems.push(`Alta concentración: ${analytics.pct80_20.toFixed(0)}% de clientes genera el 80% de ventas`);
+            }
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>Ventas Totales</h3>
+                        <div class="value">${formatCurrency(analytics.totalVentas)}</div>
+                        <div class="trend ${analytics.crecimientoMensual >= 0 ? 'up' : 'down'}">
+                            ${analytics.crecimientoMensual >= 0 ? '↗' : '↘'} ${Math.abs(analytics.crecimientoMensual).toFixed(1)}% vs mes anterior
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Número de Facturas</h3>
+                        <div class="value">${analytics.numFacturas}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Ticket Promedio</h3>
+                        <div class="value">${formatCurrency(analytics.ticketPromedio)}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Crecimiento Anual</h3>
+                        <div class="value">${analytics.crecimientoAnual.toFixed(1)}%</div>
+                        <div class="trend ${analytics.crecimientoAnual >= 0 ? 'up' : 'down'}">
+                            ${analytics.crecimientoAnual >= 0 ? '↗' : '↘'} vs año anterior
+                        </div>
+                    </div>
+                </div>
+
+                ${buenosItems.length > 0 ? `
+                    <div class="success-card">
+                        <h3>✅ Aspectos Positivos</h3>
+                        ${buenosItems.map(item => `<div class="success-item">• ${item}</div>`).join('')}
+                    </div>
+                ` : ''}
+
+                ${alertasItems.length > 0 ? `
+                    <div class="alert-card">
+                        <h3>⚠️ Áreas de Atención</h3>
+                        ${alertasItems.map(item => `<div class="alert-item">• ${item}</div>`).join('')}
+                    </div>
+                ` : ''}
+
+                <div class="charts">
+                    <div class="chart-card">
+                        <h3>Top 5 Clientes</h3>
+                        <div class="chart-container">
+                            <canvas id="chartTopClientes"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top 5 Productos</h3>
+                        <div class="chart-container">
+                            <canvas id="chartTopProductos"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts">
+                    <div class="chart-card">
+                        <h3>Ventas por Día de la Semana</h3>
+                        <div class="chart-container">
+                            <canvas id="chartDiasSemana"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top 3 Vendedores</h3>
+                        <div class="chart-container">
+                            <canvas id="chartTopVendedores"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createTopClientesChart();
+                createTopProductosChart();
+                createDiasSemanaChart();
+                createTopVendedoresChart();
+            }, 100);
+        }
+
+        function createTopClientesChart() {
+            const ctx = document.getElementById('chartTopClientes');
+            if (!ctx) return;
+
+            if (charts.topClientes) charts.topClientes.destroy();
+
+            const top5 = analytics.clientesOrdenados.slice(0, 5);
+            charts.topClientes = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: data.map(d => d[0]),
+                    labels: top5.map(c => c.nombre),
                     datasets: [{
                         label: 'Ventas',
-                        data: data.map(d => d[1]),
+                        data: top5.map(c => c.total),
+                        backgroundColor: '#5e72e4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTopProductosChart() {
+            const ctx = document.getElementById('chartTopProductos');
+            if (!ctx) return;
+
+            if (charts.topProductos) charts.topProductos.destroy();
+
+            const top5 = analytics.productosConCategoria.slice(0, 5);
+            charts.topProductos = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top5.map(p => p.nombre),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: top5.map(p => p.valor),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDiasSemanaChart() {
+            const ctx = document.getElementById('chartDiasSemana');
+            if (!ctx) return;
+
+            if (charts.diasSemana) charts.diasSemana.destroy();
+
+            charts.diasSemana = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: analytics.diasOrdenados.map(d => d.dia),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: analytics.diasOrdenados.map(d => d.ventas),
+                        backgroundColor: '#f59e0b'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTopVendedoresChart() {
+            const ctx = document.getElementById('chartTopVendedores');
+            if (!ctx) return;
+
+            if (charts.topVendedores) charts.topVendedores.destroy();
+
+            const top3 = analytics.vendedoresRanking.slice(0, 3);
+            charts.topVendedores = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top3.map(v => v.nombre),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: top3.map(v => v.ventas),
+                        backgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabVentas() {
+            const tab = document.getElementById('tab-ventas');
+
+            const ventasPorMes = {};
+            const years = [...new Set(allData.map(r => r.año))].sort();
+            
+            allData.forEach(row => {
+                if (row.numFactura !== '') {
+                    const key = `${row.año}-${row.mes}`;
+                    if (!ventasPorMes[key]) {
+                        ventasPorMes[key] = { año: row.año, mes: row.mes, total: 0 };
+                    }
+                    ventasPorMes[key].total += row.total;
+                }
+            });
+
+            const ventasArray = Object.values(ventasPorMes).sort((a, b) => {
+                if (a.año !== b.año) return a.año - b.año;
+                return a.mes - b.mes;
+            });
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>Crecimiento Mensual</h3>
+                        <div class="value ${analytics.crecimientoMensual >= 0 ? 'trend up' : 'trend down'}">${analytics.crecimientoMensual.toFixed(1)}%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Crecimiento Anual</h3>
+                        <div class="value ${analytics.crecimientoAnual >= 0 ? 'trend up' : 'trend down'}">${analytics.crecimientoAnual.toFixed(1)}%</div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Evolución de Ventas Mes a Mes</h3>
+                    <div class="chart-container">
+                        <canvas id="chartVentasMes"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Comparativo Año vs Año</h3>
+                    <div class="chart-container">
+                        <canvas id="chartComparativoAnual"></canvas>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createVentasMesChart(ventasArray);
+                createComparativoAnualChart(years);
+            }, 100);
+        }
+
+        function createVentasMesChart(ventasArray) {
+            const ctx = document.getElementById('chartVentasMes');
+            if (!ctx) return;
+
+            if (charts.ventasMes) charts.ventasMes.destroy();
+
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+            charts.ventasMes = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ventasArray.map(v => `${meses[v.mes - 1]} ${v.año}`),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: ventasArray.map(v => v.total),
                         borderColor: '#5e72e4',
                         backgroundColor: 'rgba(94, 114, 228, 0.1)',
                         tension: 0.4,
@@ -556,19 +983,15 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => formatCurrency(context.parsed.y)
-                            }
-                        }
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
                     },
                     scales: {
                         y: {
+                            beginAtZero: true,
                             ticks: {
-                                callback: (value) => '$' + (value / 1000000).toFixed(1) + 'M'
+                                callback: value => formatCurrency(value)
                             }
                         }
                     }
@@ -576,47 +999,396 @@
             });
         }
 
-        function renderVendedoresChart() {
-            const ventasPorVendedor = {};
-            filteredData.forEach(row => {
-                if (row.numFactura !== '' && row.vendedor) {
-                    ventasPorVendedor[row.vendedor] = (ventasPorVendedor[row.vendedor] || 0) + row.total;
-                }
+        function createComparativoAnualChart(years) {
+            const ctx = document.getElementById('chartComparativoAnual');
+            if (!ctx) return;
+
+            if (charts.comparativoAnual) charts.comparativoAnual.destroy();
+
+            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const datasets = [];
+            const colors = ['#5e72e4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+            years.forEach((year, idx) => {
+                const ventasMes = Array(12).fill(0);
+                
+                allData.forEach(row => {
+                    if (row.año === year && row.numFactura !== '') {
+                        ventasMes[row.mes - 1] += row.total;
+                    }
+                });
+
+                datasets.push({
+                    label: year.toString(),
+                    data: ventasMes,
+                    borderColor: colors[idx % colors.length],
+                    tension: 0.4
+                });
             });
 
-            const data = Object.entries(ventasPorVendedor)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10);
+            charts.comparativoAnual = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
-            const ctx = document.getElementById('vendedoresChart');
-            if (window.vendedoresChartInstance) window.vendedoresChartInstance.destroy();
+        function renderTabClientes() {
+            const tab = document.getElementById('tab-clientes');
 
-            window.vendedoresChartInstance = new Chart(ctx, {
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>Total Clientes</h3>
+                        <div class="value">${analytics.clientesOrdenados.length}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Clientes Inactivos (3+ meses)</h3>
+                        <div class="value">${analytics.clientesInactivos.length}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Concentración 80/20</h3>
+                        <div class="value">${analytics.pct80_20.toFixed(0)}%</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">de clientes genera el 80% de ventas</div>
+                    </div>
+                </div>
+
+                ${analytics.clientesInactivos.length > 0 ? `
+                    <div class="alert-card">
+                        <h3>⚠️ Clientes Inactivos (sin compra en 3+ meses)</h3>
+                        ${analytics.clientesInactivos.slice(0, 10).map(c => 
+                            `<div class="alert-item">• ${c.nombre} - Última compra: ${c.ultimaCompra.toLocaleDateString('es-MX')}</div>`
+                        ).join('')}
+                    </div>
+                ` : ''}
+
+                <div class="chart-card">
+                    <h3>Concentración de Clientes (Regla 80/20)</h3>
+                    <div class="chart-container">
+                        <canvas id="chartConcentracion"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Ranking de Clientes</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Cliente</th>
+                                <th>Ventas Totales</th>
+                                <th>% del Total</th>
+                                <th>Última Compra</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.clientesOrdenados.map((c, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${c.nombre}</td>
+                                    <td>${formatCurrency(c.total)}</td>
+                                    <td>${((c.total / analytics.totalVentas) * 100).toFixed(1)}%</td>
+                                    <td>${c.ultimaCompra.toLocaleDateString('es-MX')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => createConcentracionChart(), 100);
+        }
+
+        function createConcentracionChart() {
+            const ctx = document.getElementById('chartConcentracion');
+            if (!ctx) return;
+
+            if (charts.concentracion) charts.concentracion.destroy();
+
+            let acumulado = 0;
+            const pctAcumulados = analytics.clientesOrdenados.map(c => {
+                acumulado += c.total;
+                return (acumulado / analytics.totalVentas) * 100;
+            });
+
+            charts.concentracion = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: analytics.clientesOrdenados.map((c, idx) => idx + 1),
+                    datasets: [{
+                        label: '% Acumulado de Ventas',
+                        data: pctAcumulados,
+                        borderColor: '#5e72e4',
+                        backgroundColor: 'rgba(94, 114, 228, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Línea 80/20',
+                        data: Array(analytics.clientesOrdenados.length).fill(80),
+                        borderColor: '#ef4444',
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Número de Clientes' } },
+                        y: { 
+                            title: { display: true, text: '% Acumulado' },
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabProductos() {
+            const tab = document.getElementById('tab-productos');
+
+            const productosA = analytics.productosConCategoria.filter(p => p.categoria === 'A');
+            const productosB = analytics.productosConCategoria.filter(p => p.categoria === 'B');
+            const productosC = analytics.productosConCategoria.filter(p => p.categoria === 'C');
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>Productos Categoría A</h3>
+                        <div class="value">${productosA.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Top 80% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Productos Categoría B</h3>
+                        <div class="value">${productosB.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Siguiente 15% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Productos Categoría C</h3>
+                        <div class="value">${productosC.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Último 5% de ventas</div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Top 10 Productos por Ventas</h3>
+                    <div class="chart-container">
+                        <canvas id="chartTopProductosDetalle"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis ABC de Productos</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Cantidad Vendida</th>
+                                <th>Valor Total</th>
+                                <th>% del Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.productosConCategoria.map((p, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${p.nombre}</td>
+                                    <td><span class="badge ${p.categoria}">${p.categoria}</span></td>
+                                    <td>${p.cantidad}</td>
+                                    <td>${formatCurrency(p.valor)}</td>
+                                    <td>${((p.valor / analytics.totalVentas) * 100).toFixed(1)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => createTopProductosDetalleChart(), 100);
+        }
+
+        function createTopProductosDetalleChart() {
+            const ctx = document.getElementById('chartTopProductosDetalle');
+            if (!ctx) return;
+
+            if (charts.topProductosDetalle) charts.topProductosDetalle.destroy();
+
+            const top10 = analytics.productosConCategoria.slice(0, 10);
+
+            charts.topProductosDetalle = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: data.map(d => d[0]),
+                    labels: top10.map(p => p.nombre),
                     datasets: [{
                         label: 'Ventas',
-                        data: data.map(d => d[1]),
+                        data: top10.map(p => p.valor),
+                        backgroundColor: top10.map(p => {
+                            if (p.categoria === 'A') return '#10b981';
+                            if (p.categoria === 'B') return '#f59e0b';
+                            return '#ef4444';
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabVendedores() {
+            const tab = document.getElementById('tab-vendedores');
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>Total Vendedores</h3>
+                        <div class="value">${analytics.vendedoresRanking.length}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Ticket Promedio General</h3>
+                        <div class="value">${formatCurrency(analytics.ticketPromedio)}</div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Ventas por Vendedor</h3>
+                    <div class="chart-container">
+                        <canvas id="chartVendedoresVentas"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Ticket Promedio por Vendedor</h3>
+                    <div class="chart-container">
+                        <canvas id="chartVendedoresTicket"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Ranking de Vendedores</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Vendedor</th>
+                                <th>Ventas Totales</th>
+                                <th>Facturas</th>
+                                <th>Ticket Promedio</th>
+                                <th>Productos por Factura</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.vendedoresRanking.map((v, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${v.nombre}</td>
+                                    <td>${formatCurrency(v.ventas)}</td>
+                                    <td>${v.facturas}</td>
+                                    <td>${formatCurrency(v.ticketPromedio)}</td>
+                                    <td>${v.productosPorFactura.toFixed(1)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createVendedoresVentasChart();
+                createVendedoresTicketChart();
+            }, 100);
+        }
+
+        function createVendedoresVentasChart() {
+            const ctx = document.getElementById('chartVendedoresVentas');
+            if (!ctx) return;
+
+            if (charts.vendedoresVentas) charts.vendedoresVentas.destroy();
+
+            charts.vendedoresVentas = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: analytics.vendedoresRanking.map(v => v.nombre),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: analytics.vendedoresRanking.map(v => v.ventas),
+                        backgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createVendedoresTicketChart() {
+            const ctx = document.getElementById('chartVendedoresTicket');
+            if (!ctx) return;
+
+            if (charts.vendedoresTicket) charts.vendedoresTicket.destroy();
+
+            charts.vendedoresTicket = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: analytics.vendedoresRanking.map(v => v.nombre),
+                    datasets: [{
+                        label: 'Ticket Promedio',
+                        data: analytics.vendedoresRanking.map(v => v.ticketPromedio),
                         backgroundColor: '#10b981'
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
-                    indexAxis: 'y',
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => formatCurrency(context.parsed.x)
-                            }
-                        }
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
                     },
                     scales: {
-                        x: {
+                        y: {
+                            beginAtZero: true,
                             ticks: {
-                                callback: (value) => '$' + (value / 1000000).toFixed(1) + 'M'
+                                callback: value => formatCurrency(value)
                             }
                         }
                     }
@@ -624,28 +1396,143 @@
             });
         }
 
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-                minimumFractionDigits: 0
-            }).format(value);
+        function renderTabGeografia() {
+            const tab = document.getElementById('tab-geografia');
+
+            tab.innerHTML = `
+                <div class="chart-card">
+                    <h3>Ventas por Estado</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEstadosVentas"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Crecimiento por Estado (Año vs Año)</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEstadosCrecimiento"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis por Estado</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Estado</th>
+                                <th>Ventas 2025</th>
+                                <th>Crecimiento vs 2024</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.estadosConCrecimiento.map((e, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${e.estado}</td>
+                                    <td>${formatCurrency(e.ventas)}</td>
+                                    <td class="${e.crecimiento >= 0 ? 'trend up' : 'trend down'}">
+                                        ${e.crecimiento >= 0 ? '↗' : '↘'} ${Math.abs(e.crecimiento).toFixed(1)}%
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createEstadosVentasChart();
+                createEstadosCrecimientoChart();
+            }, 100);
+        }
+
+        function createEstadosVentasChart() {
+            const ctx = document.getElementById('chartEstadosVentas');
+            if (!ctx) return;
+
+            if (charts.estadosVentas) charts.estadosVentas.destroy();
+
+            const top10 = analytics.estadosConCrecimiento.slice(0, 10);
+
+            charts.estadosVentas = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(e => e.estado),
+                    datasets: [{
+                        label: 'Ventas 2025',
+                        data: top10.map(e => e.ventas),
+                        backgroundColor: '#5e72e4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createEstadosCrecimientoChart() {
+            const ctx = document.getElementById('chartEstadosCrecimiento');
+            if (!ctx) return;
+
+            if (charts.estadosCrecimiento) charts.estadosCrecimiento.destroy();
+
+            const top10 = analytics.estadosConCrecimiento.slice(0, 10);
+
+            charts.estadosCrecimiento = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(e => e.estado),
+                    datasets: [{
+                        label: 'Crecimiento %',
+                        data: top10.map(e => e.crecimiento),
+                        backgroundColor: top10.map(e => e.crecimiento >= 0 ? '#10b981' : '#ef4444')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: value => value + '%'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function showError(message) {
-            document.getElementById('errorSection').innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
-            document.getElementById('errorSection').style.display = 'block';
+            const errorSection = document.getElementById('errorSection');
+            errorSection.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            errorSection.style.display = 'block';
         }
 
-        window.onload = async () => {
-            await msalInstance.handleRedirectPromise();
-            const accounts = msalInstance.getAllAccounts();
-            if (accounts.length > 0) {
+        msalInstance.handleRedirectPromise().then(response => {
+            if (response) {
                 document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('userName').textContent = accounts[0].name;
-                await loadData();
+                document.getElementById('userName').textContent = response.account.name;
+                loadData();
             }
-        };
+        });
     </script>
 </body>
 </html>
