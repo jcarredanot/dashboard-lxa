@@ -503,39 +503,5 @@
     `
   }
   </script>
-
-  <!--
-  ===============================
-  10) Plan de migración (resumen)
-  ===============================
-  1. Azure AD
-     - Registra una "App" (tipo SPA) → Authentication → Redirect URI = https://<tu-usuario>.github.io/<repo>/
-     - Permisos Microsoft Graph: User.Read (Delegated), Files.Read (Delegated)
-     - (Opcional) Files.Read.All si leerás fuera del link compartido
-     - Habilita Implicit deshabilitado; usa Authorization Code + PKCE (por defecto en msal-browser)
-
-  2. SharePoint
-     - Abre el Excel LXA → Copiar vínculo (compartido con tu organización). Usa ese URL en CONFIG.shareUrl
-     - Verifica Historial de versiones y permisos (solo lectura es suficiente)
-
-  3. Repo (GitHub Pages)
-     - Crea repo con index.html (este archivo)
-     - Settings → Pages → Deploy from Branch → main / root
-     - Agrega la URL de Pages como Redirect URI en Azure
-
-  4. Pruebas
-     - Login → Carga OK → Revisar consola para ver nombre de hoja detectada
-     - Validar encabezados: si algún campo no aparece, añade variante a CONFIG.columns
-     - Revisar totales vs Excel
-
-  5. Endurecimiento
-     - CacheLocation: localStorage
-     - Reintentos en descarga (si quieres)
-     - Sanitizar inputs si agregas formularios
-
-  6. Escalabilidad
-     - Si el Excel crece mucho: mover a API backend que entregue JSON (opcional)
-     - O usar Excel API (Graph) para rango acotado
-  -->
 </body>
 </html>
