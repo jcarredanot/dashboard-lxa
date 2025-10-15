@@ -556,19 +556,30 @@
             const margenGlobal = totalVentas > 0 ? (totalVentas - totalCostos) / totalVentas : 0;
             const numFacturas = ventasConFactura.length;
             
+            const metasCrecimiento = calculateMetasCrecimiento();
+            const clientAnalysis = calculateClientAnalysis();
+            const productAnalysis = calculateProductAnalysis();
+            const geografiaAnalysis = calculateGeografiaAnalysis();
+            
             analytics = {
                 totalVentas,
                 totalCostos,
                 margenGlobal,
                 numFacturas,
                 ticketPromedio: numFacturas > 0 ? totalVentas / numFacturas : 0,
-                ...calculateMetasCrecimiento(),
-                ...calculateClientAnalysis(),
-                ...calculateProductAnalysis(),
-                ...calculateRFMAnalysis(),
-                ...calculateGeografiaAnalysis(),
-                ...calculateProyeccion()
+                ...metasCrecimiento,
+                ...clientAnalysis,
+                ...productAnalysis,
+                ...geografiaAnalysis
             };
+            
+            // Calcular RFM después de tener clientesOrdenados
+            const rfmAnalysis = calculateRFMAnalysis();
+            analytics = { ...analytics, ...rfmAnalysis };
+            
+            // Calcular proyección después de tener la meta
+            const proyeccion = calculateProyeccion();
+            analytics = { ...analytics, ...proyeccion };
         }
 
         function calculateMetasCrecimiento() {
@@ -639,7 +650,7 @@
             const proyeccionMes = promedioDiario * diasDelMes;
 
             // Meta mensual (meta anual / 12)
-            const metaMensual = analytics.meta2025 / 12;
+            const metaMensual = (analytics.meta2025 || 0) / 12;
             const gapToGoal = metaMensual - proyeccionMes;
             const ventasNecesariasDiarias = diasRestantes > 0 ? gapToGoal / diasRestantes : 0;
 
@@ -651,7 +662,7 @@
                 diasRestantes,
                 ventasNecesariasDiarias,
                 promedioDiario,
-                probabilidadCumplimiento: (proyeccionMes / metaMensual) * 100
+                probabilidadCumplimiento: metaMensual > 0 ? (proyeccionMes / metaMensual) * 100 : 0
             };
         }
 
@@ -724,6 +735,10 @@
         }
 
         function calculateRFMAnalysis() {
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                return { rfmData: [] };
+            }
+            
             const now = new Date();
             const rfmData = analytics.clientesOrdenados.map(c => {
                 const recency = c.diasDesdeUltimaCompra;
@@ -844,21 +859,27 @@
         function renderTabScorecard() {
             const tab = document.getElementById('tab-scorecard');
             
-            const semaforoVentas = getSemaforoClass(analytics.ventas2025, analytics.meta2025);
-            const semaforoMargen = getSemaforoClass(analytics.margenGlobal, CEO_CONFIG.margenObjetivo);
-            const semaforoProyeccion = getSemaforoClass(analytics.probabilidadCumplimiento, 100);
+            // Validar que analytics tenga todas las propiedades necesarias
+            if (!analytics.totalVentas) {
+                tab.innerHTML = '<div class="loading"><h3>Calculando datos...</h3></div>';
+                return;
+            }
+            
+            const semaforoVentas = getSemaforoClass(analytics.ventas2025 || 0, analytics.meta2025 || 1);
+            const semaforoMargen = getSemaforoClass(analytics.margenGlobal || 0, CEO_CONFIG.margenObjetivo);
+            const semaforoProyeccion = getSemaforoClass(analytics.probabilidadCumplimiento || 0, 100);
 
             const alertasHTML = [];
-            if (analytics.clientesVIPEnRiesgo.length > 0) {
+            if (analytics.clientesVIPEnRiesgo && analytics.clientesVIPEnRiesgo.length > 0) {
                 alertasHTML.push(`• ${analytics.clientesVIPEnRiesgo.length} clientes VIP sin comprar en ${CEO_CONFIG.diasClienteInactivo}+ días`);
             }
-            if (analytics.productosBajoMargen.length > 0) {
+            if (analytics.productosBajoMargen && analytics.productosBajoMargen.length > 0) {
                 alertasHTML.push(`• ${analytics.productosBajoMargen.length} productos con margen < 35%`);
             }
             if (analytics.crecimientoMensual < 0) {
                 alertasHTML.push(`• Decrecimiento mensual del ${Math.abs(analytics.crecimientoMensual).toFixed(1)}%`);
             }
-            if (analytics.gapToGoal < 0) {
+            if (analytics.gapToGoal && analytics.gapToGoal < 0) {
                 alertasHTML.push(`• Proyección del mes supera la meta`);
             } else if (analytics.diasRestantes > 0 && analytics.ventasNecesariasDiarias > analytics.promedioDiario * 1.5) {
                 alertasHTML.push(`• Se requiere ${formatCurrency(analytics.ventasNecesariasDiarias)}/día para cumplir meta (${((analytics.ventasNecesariasDiarias/analytics.promedioDiario - 1) * 100).toFixed(0)}% más que el promedio)`);
@@ -870,21 +891,21 @@
                     <div class="projection-grid">
                         <div class="projection-item">
                             <h4>Meta Mensual</h4>
-                            <div class="proj-value">${formatCurrency(analytics.metaMensual)}</div>
+                            <div class="proj-value">${formatCurrency(analytics.metaMensual || 0)}</div>
                         </div>
                         <div class="projection-item">
                             <h4>Ventas a la Fecha</h4>
-                            <div class="proj-value">${formatCurrency(analytics.ventasMesHastaHoy)}</div>
+                            <div class="proj-value">${formatCurrency(analytics.ventasMesHastaHoy || 0)}</div>
                         </div>
                         <div class="projection-item">
                             <h4>Proyección Mes</h4>
-                            <div class="proj-value">${formatCurrency(analytics.proyeccionMes)}</div>
-                            <div class="proj-detail">${analytics.probabilidadCumplimiento.toFixed(0)}% probabilidad</div>
+                            <div class="proj-value">${formatCurrency(analytics.proyeccionMes || 0)}</div>
+                            <div class="proj-detail">${(analytics.probabilidadCumplimiento || 0).toFixed(0)}% probabilidad</div>
                         </div>
                         <div class="projection-item">
                             <h4>Días Restantes</h4>
-                            <div class="proj-value">${analytics.diasRestantes}</div>
-                            <div class="proj-detail">${formatCurrency(analytics.ventasNecesariasDiarias)}/día necesario</div>
+                            <div class="proj-value">${analytics.diasRestantes || 0}</div>
+                            <div class="proj-detail">${formatCurrency(analytics.ventasNecesariasDiarias || 0)}/día necesario</div>
                         </div>
                     </div>
                 </div>
@@ -892,32 +913,32 @@
                 <div class="scorecard">
                     <div class="scorecard-item ${semaforoVentas}">
                         <h4>🎯 Ventas 2025 vs Meta</h4>
-                        <div class="score-value">${analytics.avanceVsMeta.toFixed(1)}%</div>
-                        <div class="score-detail">${formatCurrency(analytics.ventas2025)} de ${formatCurrency(analytics.meta2025)}</div>
+                        <div class="score-value">${(analytics.avanceVsMeta || 0).toFixed(1)}%</div>
+                        <div class="score-detail">${formatCurrency(analytics.ventas2025 || 0)} de ${formatCurrency(analytics.meta2025 || 0)}</div>
                     </div>
                     <div class="scorecard-item ${semaforoMargen}">
                         <h4>💰 Margen Global</h4>
-                        <div class="score-value">${(analytics.margenGlobal * 100).toFixed(1)}%</div>
+                        <div class="score-value">${((analytics.margenGlobal || 0) * 100).toFixed(1)}%</div>
                         <div class="score-detail">Objetivo: 35%</div>
                     </div>
-                    <div class="scorecard-item ${analytics.crecimientoMensual >= 0 ? 'verde' : 'rojo'}">
+                    <div class="scorecard-item ${(analytics.crecimientoMensual || 0) >= 0 ? 'verde' : 'rojo'}">
                         <h4>📈 Crecimiento Mensual</h4>
-                        <div class="score-value">${analytics.crecimientoMensual.toFixed(1)}%</div>
+                        <div class="score-value">${(analytics.crecimientoMensual || 0).toFixed(1)}%</div>
                         <div class="score-detail">vs mes anterior</div>
                     </div>
-                    <div class="scorecard-item ${analytics.crecimientoAnual >= 15 ? 'verde' : analytics.crecimientoAnual >= 10 ? 'amarillo' : 'rojo'}">
+                    <div class="scorecard-item ${(analytics.crecimientoAnual || 0) >= 15 ? 'verde' : (analytics.crecimientoAnual || 0) >= 10 ? 'amarillo' : 'rojo'}">
                         <h4>📊 Crecimiento Anual</h4>
-                        <div class="score-value">${analytics.crecimientoAnual.toFixed(1)}%</div>
+                        <div class="score-value">${(analytics.crecimientoAnual || 0).toFixed(1)}%</div>
                         <div class="score-detail">Meta: 15%</div>
                     </div>
-                    <div class="scorecard-item ${analytics.clientesInactivos.length === 0 ? 'verde' : analytics.clientesInactivos.length < 10 ? 'amarillo' : 'rojo'}">
+                    <div class="scorecard-item ${(analytics.clientesInactivos && analytics.clientesInactivos.length === 0) ? 'verde' : (analytics.clientesInactivos && analytics.clientesInactivos.length < 10) ? 'amarillo' : 'rojo'}">
                         <h4>👥 Clientes Activos</h4>
-                        <div class="score-value">${analytics.clientesOrdenados.length - analytics.clientesInactivos.length}</div>
-                        <div class="score-detail">${analytics.clientesInactivos.length} inactivos</div>
+                        <div class="score-value">${(analytics.clientesOrdenados ? analytics.clientesOrdenados.length : 0) - (analytics.clientesInactivos ? analytics.clientesInactivos.length : 0)}</div>
+                        <div class="score-detail">${analytics.clientesInactivos ? analytics.clientesInactivos.length : 0} inactivos</div>
                     </div>
-                    <div class="scorecard-item ${analytics.pct80_20 < 30 ? 'verde' : analytics.pct80_20 < 40 ? 'amarillo' : 'rojo'}">
+                    <div class="scorecard-item ${(analytics.pct80_20 || 0) < 30 ? 'verde' : (analytics.pct80_20 || 0) < 40 ? 'amarillo' : 'rojo'}">
                         <h4>🎲 Concentración 80/20</h4>
-                        <div class="score-value">${analytics.pct80_20.toFixed(0)}%</div>
+                        <div class="score-value">${(analytics.pct80_20 || 0).toFixed(0)}%</div>
                         <div class="score-detail">genera 80% ventas</div>
                     </div>
                 </div>
@@ -929,7 +950,7 @@
                     </div>
                 ` : ''}
 
-                ${analytics.clientesVIPEnRiesgo.length > 0 ? `
+                ${analytics.clientesVIPEnRiesgo && analytics.clientesVIPEnRiesgo.length > 0 ? `
                     <div class="alert-card">
                         <h3>🚨 Clientes VIP en Riesgo</h3>
                         ${analytics.clientesVIPEnRiesgo.map(c => 
@@ -941,24 +962,24 @@
                 <div class="kpis">
                     <div class="kpi-card">
                         <h3>Ventas Totales</h3>
-                        <div class="value">${formatCurrency(analytics.totalVentas)}</div>
+                        <div class="value">${formatCurrency(analytics.totalVentas || 0)}</div>
                         <div class="semaforo ${semaforoVentas}"></div>
                     </div>
                     <div class="kpi-card">
                         <h3>Margen Bruto</h3>
-                        <div class="value">${formatCurrency(analytics.totalVentas - analytics.totalCostos)}</div>
-                        <div class="trend ${analytics.margenGlobal >= CEO_CONFIG.margenObjetivo ? 'up' : 'down'}">
-                            ${(analytics.margenGlobal * 100).toFixed(1)}% margen
+                        <div class="value">${formatCurrency((analytics.totalVentas || 0) - (analytics.totalCostos || 0))}</div>
+                        <div class="trend ${(analytics.margenGlobal || 0) >= CEO_CONFIG.margenObjetivo ? 'up' : 'down'}">
+                            ${((analytics.margenGlobal || 0) * 100).toFixed(1)}% margen
                         </div>
                     </div>
                     <div class="kpi-card">
                         <h3>Ticket Promedio</h3>
-                        <div class="value">${formatCurrency(analytics.ticketPromedio)}</div>
+                        <div class="value">${formatCurrency(analytics.ticketPromedio || 0)}</div>
                     </div>
                     <div class="kpi-card">
                         <h3>Total Clientes</h3>
-                        <div class="value">${analytics.clientesOrdenados.length}</div>
-                        <div class="trend">${analytics.clientesVIP.length} VIP</div>
+                        <div class="value">${analytics.clientesOrdenados ? analytics.clientesOrdenados.length : 0}</div>
+                        <div class="trend">${analytics.clientesVIP ? analytics.clientesVIP.length : 0} VIP</div>
                     </div>
                 </div>
 
@@ -988,6 +1009,10 @@
             const ctx = document.getElementById('chartTopClientesVIP');
             if (!ctx) return;
             if (charts.topClientesVIP) charts.topClientesVIP.destroy();
+
+            if (!analytics.clientesVIP || analytics.clientesVIP.length === 0) {
+                return;
+            }
 
             const top5 = analytics.clientesVIP.slice(0, 5);
             charts.topClientesVIP = new Chart(ctx, {
@@ -1019,10 +1044,16 @@
             if (!ctx) return;
             if (charts.topProductosMargen) charts.topProductosMargen.destroy();
 
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                return;
+            }
+
             const top5 = analytics.productosConCategoria
                 .filter(p => p.margen > 0)
                 .sort((a, b) => b.margen - a.margen)
                 .slice(0, 5);
+
+            if (top5.length === 0) return;
 
             charts.topProductosMargen = new Chart(ctx, {
                 type: 'bar',
@@ -1056,22 +1087,22 @@
                 <div class="kpis">
                     <div class="kpi-card">
                         <h3>Ventas 2024</h3>
-                        <div class="value">${formatCurrency(analytics.ventas2024)}</div>
+                        <div class="value">${formatCurrency(analytics.ventas2024 || 0)}</div>
                     </div>
                     <div class="kpi-card">
                         <h3>Meta 2025 (+15%)</h3>
-                        <div class="value">${formatCurrency(analytics.meta2025)}</div>
+                        <div class="value">${formatCurrency(analytics.meta2025 || 0)}</div>
                     </div>
                     <div class="kpi-card">
                         <h3>Ventas 2025 YTD</h3>
-                        <div class="value">${formatCurrency(analytics.ventas2025)}</div>
-                        <div class="trend ${analytics.avanceVsMeta >= 100 ? 'up' : 'down'}">
-                            ${analytics.avanceVsMeta.toFixed(1)}% de la meta
+                        <div class="value">${formatCurrency(analytics.ventas2025 || 0)}</div>
+                        <div class="trend ${(analytics.avanceVsMeta || 0) >= 100 ? 'up' : 'down'}">
+                            ${(analytics.avanceVsMeta || 0).toFixed(1)}% de la meta
                         </div>
                     </div>
                     <div class="kpi-card">
                         <h3>Crecimiento Anual</h3>
-                        <div class="value ${analytics.crecimientoAnual >= 15 ? 'trend up' : 'trend down'}">${analytics.crecimientoAnual.toFixed(1)}%</div>
+                        <div class="value ${(analytics.crecimientoAnual || 0) >= 15 ? 'trend up' : 'trend down'}">${(analytics.crecimientoAnual || 0).toFixed(1)}%</div>
                     </div>
                 </div>
 
@@ -1100,6 +1131,10 @@
             const ctx = document.getElementById('chartEvolucionMensual');
             if (!ctx) return;
             if (charts.evolucionMensual) charts.evolucionMensual.destroy();
+
+            if (!allData || allData.length === 0) {
+                return;
+            }
 
             const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
             const ventas2024 = Array(12).fill(0);
@@ -1152,6 +1187,10 @@
             if (!ctx) return;
             if (charts.tendencia) charts.tendencia.destroy();
 
+            if (!allData || allData.length === 0) {
+                return;
+            }
+
             // Calcular ventas mensuales históricas
             const ventasMensuales = {};
             allData.forEach(row => {
@@ -1164,6 +1203,8 @@
 
             const sortedKeys = Object.keys(ventasMensuales).sort();
             const ultimos12Meses = sortedKeys.slice(-12);
+
+            if (ultimos12Meses.length === 0) return;
             
             charts.tendencia = new Chart(ctx, {
                 type: 'line',
@@ -1199,6 +1240,11 @@
         function renderTabRentabilidad() {
             const tab = document.getElementById('tab-rentabilidad');
 
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
+                return;
+            }
+
             const productosAltoMargen = analytics.productosConCategoria
                 .filter(p => p.margen >= CEO_CONFIG.margenObjetivo)
                 .length;
@@ -1207,17 +1253,17 @@
                 <div class="kpis">
                     <div class="kpi-card">
                         <h3>Ventas Totales</h3>
-                        <div class="value">${formatCurrency(analytics.totalVentas)}</div>
+                        <div class="value">${formatCurrency(analytics.totalVentas || 0)}</div>
                     </div>
                     <div class="kpi-card">
                         <h3>Costos Totales</h3>
-                        <div class="value">${formatCurrency(analytics.totalCostos)}</div>
+                        <div class="value">${formatCurrency(analytics.totalCostos || 0)}</div>
                     </div>
                     <div class="kpi-card">
                         <h3>Margen Bruto</h3>
-                        <div class="value">${formatCurrency(analytics.totalVentas - analytics.totalCostos)}</div>
-                        <div class="trend ${analytics.margenGlobal >= CEO_CONFIG.margenObjetivo ? 'up' : 'down'}">
-                            ${(analytics.margenGlobal * 100).toFixed(1)}% (objetivo: 35%)
+                        <div class="value">${formatCurrency((analytics.totalVentas || 0) - (analytics.totalCostos || 0))}</div>
+                        <div class="trend ${(analytics.margenGlobal || 0) >= CEO_CONFIG.margenObjetivo ? 'up' : 'down'}">
+                            ${((analytics.margenGlobal || 0) * 100).toFixed(1)}% (objetivo: 35%)
                         </div>
                     </div>
                     <div class="kpi-card">
@@ -1227,7 +1273,7 @@
                     </div>
                 </div>
 
-                ${analytics.productosBajoMargen.length > 0 ? `
+                ${analytics.productosBajoMargen && analytics.productosBajoMargen.length > 0 ? `
                     <div class="alert-card">
                         <h3>⚠️ Productos con Margen < 35%</h3>
                         ${analytics.productosBajoMargen.slice(0, 10).map(p => 
@@ -1291,73 +1337,31 @@
             if (!ctx) return;
             if (charts.rentabilidadProductos) charts.rentabilidadProductos.destroy();
 
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                return;
+            }
+
             const top10 = analytics.productosConCategoria
                 .map(p => ({ ...p, margenBruto: p.valor - p.costoTotal }))
                 .sort((a, b) => b.margenBruto - a.margenBruto)
                 .slice(0, 10);
+
+            if (top10.length === 0) return;
 
             charts.rentabilidadProductos = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: top10.map(p => p.nombre.substring(0, 25)),
                     datasets: [{
-                        label: 'Margen Bruto $',
-                        data: top10.map(p => p.margenBruto),
-                        backgroundColor: '#10b981'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createRentabilidadClientesChart() {
-            const ctx = document.getElementById('chartRentabilidadClientes');
-            if (!ctx) return;
-            if (charts.rentabilidadClientes) charts.rentabilidadClientes.destroy();
-
-            const top10 = analytics.clientesOrdenados
-                .map(c => ({ ...c, margenBruto: c.total - c.totalCosto }))
-                .sort((a, b) => b.margenBruto - a.margenBruto)
-                .slice(0, 10);
-
-            charts.rentabilidadClientes = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(c => c.nombre),
-                    datasets: [{
-                        label: 'Margen Bruto $',
-                        data: top10.map(c => c.margenBruto),
-                        backgroundColor: '#8b5cf6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { callback: value => formatCurrency(value) }
-                        }
-                    }
-                }
-            });
-        }
+                        label: 'Margen Bruto 
 
         function renderTabClientes() {
             const tab = document.getElementById('tab-clientes');
+
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos de clientes disponibles</h3></div>';
+                return;
+            }
 
             // Calcular CLV promedio
             const clvPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.total, 0) / analytics.clientesOrdenados.length;
@@ -1367,10 +1371,12 @@
 
             // Segmentación RFM
             const segmentos = {};
-            analytics.rfmData.forEach(c => {
-                if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
-                segmentos[c.segmento]++;
-            });
+            if (analytics.rfmData && analytics.rfmData.length > 0) {
+                analytics.rfmData.forEach(c => {
+                    if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
+                    segmentos[c.segmento]++;
+                });
+            }
 
             tab.innerHTML = `
                 <div class="kpis">
@@ -1401,7 +1407,7 @@
                     <div class="info-item">• <strong>En Riesgo:</strong> ${segmentos['Riesgo'] || 0} clientes (90+ días sin comprar)</div>
                 </div>
 
-                ${analytics.clientesInactivos.length > 0 ? `
+                ${analytics.clientesInactivos && analytics.clientesInactivos.length > 0 ? `
                     <div class="alert-card">
                         <h3>⚠️ Clientes Inactivos (${CEO_CONFIG.diasClienteInactivo}+ días sin comprar)</h3>
                         ${analytics.clientesInactivos.slice(0, 10).map(c => 
@@ -1439,7 +1445,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${analytics.rfmData.slice(0, 20).map(c => `
+                            ${analytics.rfmData && analytics.rfmData.length > 0 ? analytics.rfmData.slice(0, 20).map(c => `
                                 <tr>
                                     <td>${c.nombre}</td>
                                     <td><span class="badge ${c.segmento}">${c.segmento}</span></td>
@@ -1450,7 +1456,7 @@
                                         ${c.diasDesdeUltimaCompra}
                                     </td>
                                 </tr>
-                            `).join('')}
+                            `).join('') : '<tr><td colspan="6">No hay datos disponibles</td></tr>'}
                         </tbody>
                     </table>
                 </div>
@@ -1466,6 +1472,10 @@
             const ctx = document.getElementById('chartSegmentacion');
             if (!ctx) return;
             if (charts.segmentacion) charts.segmentacion.destroy();
+
+            if (!analytics.rfmData || analytics.rfmData.length === 0) {
+                return;
+            }
 
             const segmentos = {};
             analytics.rfmData.forEach(c => {
@@ -1493,6 +1503,10 @@
             const ctx = document.getElementById('chartTopCLV');
             if (!ctx) return;
             if (charts.topCLV) charts.topCLV.destroy();
+
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                return;
+            }
 
             const top10 = analytics.clientesOrdenados.slice(0, 10);
 
@@ -1523,6 +1537,11 @@
 
         function renderTabProductos() {
             const tab = document.getElementById('tab-productos');
+
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
+                return;
+            }
 
             const productosA = analytics.productosConCategoria.filter(p => p.categoria === 'A');
             const productosB = analytics.productosConCategoria.filter(p => p.categoria === 'B');
@@ -1597,6 +1616,10 @@
             if (!ctx) return;
             if (charts.topProductos) charts.topProductos.destroy();
 
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                return;
+            }
+
             const top15 = analytics.productosConCategoria.slice(0, 15);
 
             charts.topProductos = new Chart(ctx, {
@@ -1630,6 +1653,11 @@
 
         function renderTabGeografia() {
             const tab = document.getElementById('tab-geografia');
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos geográficos disponibles</h3></div>';
+                return;
+            }
 
             tab.innerHTML = `
                 <div class="chart-card">
@@ -1684,6 +1712,10 @@
             if (!ctx) return;
             if (charts.estadosVentas) charts.estadosVentas.destroy();
 
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                return;
+            }
+
             const top10 = analytics.estadosConCrecimiento
                 .sort((a, b) => b.ventas - a.ventas)
                 .slice(0, 10);
@@ -1717,6 +1749,953 @@
             const ctx = document.getElementById('chartEstadosCrecimiento');
             if (!ctx) return;
             if (charts.estadosCrecimiento) charts.estadosCrecimiento.destroy();
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                return;
+            }
+
+            const top10 = analytics.estadosConCrecimiento.slice(0, 10);
+
+            charts.estadosCrecimiento = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(e => e.estado),
+                    datasets: [{
+                        label: 'Crecimiento %',
+                        data: top10.map(e => e.crecimiento),
+                        backgroundColor: top10.map(e => e.crecimiento >= 0 ? '#10b981' : '#ef4444')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            ticks: { callback: value => value + '%' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showError(message) {
+            const errorSection = document.getElementById('errorSection');
+            errorSection.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            errorSection.style.display = 'block';
+        }
+
+        msalInstance.handleRedirectPromise().then(response => {
+            if (response) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('userName').textContent = response.account.name;
+                loadData();
+            }
+        });
+    </script>
+</body>
+</html>,
+                        data: top10.map(p => p.margenBruto),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createRentabilidadClientesChart() {
+            const ctx = document.getElementById('chartRentabilidadClientes');
+            if (!ctx) return;
+            if (charts.rentabilidadClientes) charts.rentabilidadClientes.destroy();
+
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                return;
+            }
+
+            const top10 = analytics.clientesOrdenados
+                .map(c => ({ ...c, margenBruto: c.total - c.totalCosto }))
+                .sort((a, b) => b.margenBruto - a.margenBruto)
+                .slice(0, 10);
+
+            if (top10.length === 0) return;
+
+            charts.rentabilidadClientes = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(c => c.nombre),
+                    datasets: [{
+                        label: 'Margen Bruto 
+
+        function renderTabClientes() {
+            const tab = document.getElementById('tab-clientes');
+
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos de clientes disponibles</h3></div>';
+                return;
+            }
+
+            // Calcular CLV promedio
+            const clvPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.total, 0) / analytics.clientesOrdenados.length;
+
+            // Frecuencia promedio
+            const frecuenciaPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.frecuencia, 0) / analytics.clientesOrdenados.length;
+
+            // Segmentación RFM
+            const segmentos = {};
+            if (analytics.rfmData && analytics.rfmData.length > 0) {
+                analytics.rfmData.forEach(c => {
+                    if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
+                    segmentos[c.segmento]++;
+                });
+            }
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>CLV Promedio</h3>
+                        <div class="value">${formatCurrency(clvPromedio)}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Frecuencia Promedio</h3>
+                        <div class="value">${frecuenciaPromedio.toFixed(1)}</div>
+                        <div class="trend">compras por cliente</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Clientes VIP</h3>
+                        <div class="value">${segmentos['VIP'] || 0}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Clientes en Riesgo</h3>
+                        <div class="value">${segmentos['Riesgo'] || 0}</div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📊 Segmentación RFM</h3>
+                    <div class="info-item">• <strong>VIP:</strong> ${segmentos['VIP'] || 0} clientes (compra reciente, alta frecuencia, alto valor)</div>
+                    <div class="info-item">• <strong>Leales:</strong> ${segmentos['Leal'] || 0} clientes (compran regularmente)</div>
+                    <div class="info-item">• <strong>Ocasionales:</strong> ${segmentos['Ocasional'] || 0} clientes (compras esporádicas)</div>
+                    <div class="info-item">• <strong>En Riesgo:</strong> ${segmentos['Riesgo'] || 0} clientes (90+ días sin comprar)</div>
+                </div>
+
+                ${analytics.clientesInactivos && analytics.clientesInactivos.length > 0 ? `
+                    <div class="alert-card">
+                        <h3>⚠️ Clientes Inactivos (${CEO_CONFIG.diasClienteInactivo}+ días sin comprar)</h3>
+                        ${analytics.clientesInactivos.slice(0, 10).map(c => 
+                            `<div class="alert-item">• <strong>${c.nombre}</strong> - ${c.diasDesdeUltimaCompra} días - CLV: ${formatCurrency(c.total)}</div>`
+                        ).join('')}
+                    </div>
+                ` : ''}
+
+                <div class="charts">
+                    <div class="chart-card">
+                        <h3>Segmentación de Clientes</h3>
+                        <div class="chart-container">
+                            <canvas id="chartSegmentacion"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top 10 Clientes por CLV</h3>
+                        <div class="chart-container">
+                            <canvas id="chartTopCLV"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis RFM de Clientes (Top 20)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Segmento</th>
+                                <th>CLV</th>
+                                <th>Frecuencia</th>
+                                <th>Última Compra</th>
+                                <th>Días</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.rfmData && analytics.rfmData.length > 0 ? analytics.rfmData.slice(0, 20).map(c => `
+                                <tr>
+                                    <td>${c.nombre}</td>
+                                    <td><span class="badge ${c.segmento}">${c.segmento}</span></td>
+                                    <td>${formatCurrency(c.total)}</td>
+                                    <td>${c.frecuencia}</td>
+                                    <td>${c.ultimaCompra.toLocaleDateString('es-MX')}</td>
+                                    <td class="${c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo ? 'trend down' : 'trend up'}">
+                                        ${c.diasDesdeUltimaCompra}
+                                    </td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="6">No hay datos disponibles</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createSegmentacionChart();
+                createTopCLVChart();
+            }, 100);
+        }
+
+        function createSegmentacionChart() {
+            const ctx = document.getElementById('chartSegmentacion');
+            if (!ctx) return;
+            if (charts.segmentacion) charts.segmentacion.destroy();
+
+            if (!analytics.rfmData || analytics.rfmData.length === 0) {
+                return;
+            }
+
+            const segmentos = {};
+            analytics.rfmData.forEach(c => {
+                if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
+                segmentos[c.segmento]++;
+            });
+
+            charts.segmentacion = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(segmentos),
+                    datasets: [{
+                        data: Object.values(segmentos),
+                        backgroundColor: ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function createTopCLVChart() {
+            const ctx = document.getElementById('chartTopCLV');
+            if (!ctx) return;
+            if (charts.topCLV) charts.topCLV.destroy();
+
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                return;
+            }
+
+            const top10 = analytics.clientesOrdenados.slice(0, 10);
+
+            charts.topCLV = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(c => c.nombre),
+                    datasets: [{
+                        label: 'CLV',
+                        data: top10.map(c => c.total),
+                        backgroundColor: '#5e72e4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabProductos() {
+            const tab = document.getElementById('tab-productos');
+
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
+                return;
+            }
+
+            const productosA = analytics.productosConCategoria.filter(p => p.categoria === 'A');
+            const productosB = analytics.productosConCategoria.filter(p => p.categoria === 'B');
+            const productosC = analytics.productosConCategoria.filter(p => p.categoria === 'C');
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>Productos Categoría A</h3>
+                        <div class="value">${productosA.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Top 80% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Productos Categoría B</h3>
+                        <div class="value">${productosB.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Siguiente 15% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Productos Categoría C</h3>
+                        <div class="value">${productosC.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Último 5% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Margen Promedio</h3>
+                        <div class="value">${(analytics.productosConCategoria.reduce((sum, p) => sum + p.margen, 0) / analytics.productosConCategoria.length * 100).toFixed(1)}%</div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Top 15 Productos por Ventas</h3>
+                    <div class="chart-container">
+                        <canvas id="chartTopProductos"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis ABC de Productos</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Ventas</th>
+                                <th>Margen %</th>
+                                <th>% Acum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.productosConCategoria.map((p, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${p.nombre}</td>
+                                    <td><span class="badge ${p.categoria}">${p.categoria}</span></td>
+                                    <td>${formatCurrency(p.valor)}</td>
+                                    <td class="${p.margen >= CEO_CONFIG.margenObjetivo ? 'trend up' : 'trend down'}">
+                                        ${(p.margen * 100).toFixed(1)}%
+                                    </td>
+                                    <td>${p.pctAcumulado.toFixed(1)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => createTopProductosChart(), 100);
+        }
+
+        function createTopProductosChart() {
+            const ctx = document.getElementById('chartTopProductos');
+            if (!ctx) return;
+            if (charts.topProductos) charts.topProductos.destroy();
+
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                return;
+            }
+
+            const top15 = analytics.productosConCategoria.slice(0, 15);
+
+            charts.topProductos = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top15.map(p => p.nombre.substring(0, 30)),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: top15.map(p => p.valor),
+                        backgroundColor: top15.map(p => {
+                            if (p.categoria === 'A') return '#10b981';
+                            if (p.categoria === 'B') return '#f59e0b';
+                            return '#ef4444';
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabGeografia() {
+            const tab = document.getElementById('tab-geografia');
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos geográficos disponibles</h3></div>';
+                return;
+            }
+
+            tab.innerHTML = `
+                <div class="chart-card">
+                    <h3>Top 10 Estados por Ventas</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEstadosVentas"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Top 10 Estados por Crecimiento</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEstadosCrecimiento"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis por Estado</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Estado</th>
+                                <th>Ventas 2025</th>
+                                <th>Crecimiento vs 2024</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.estadosConCrecimiento.map((e, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${e.estado}</td>
+                                    <td>${formatCurrency(e.ventas)}</td>
+                                    <td class="${e.crecimiento >= 0 ? 'trend up' : 'trend down'}">
+                                        ${e.crecimiento >= 0 ? '↗' : '↘'} ${Math.abs(e.crecimiento).toFixed(1)}%
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createEstadosVentasChart();
+                createEstadosCrecimientoChart();
+            }, 100);
+        }
+
+        function createEstadosVentasChart() {
+            const ctx = document.getElementById('chartEstadosVentas');
+            if (!ctx) return;
+            if (charts.estadosVentas) charts.estadosVentas.destroy();
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                return;
+            }
+
+            const top10 = analytics.estadosConCrecimiento
+                .sort((a, b) => b.ventas - a.ventas)
+                .slice(0, 10);
+
+            charts.estadosVentas = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(e => e.estado),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: top10.map(e => e.ventas),
+                        backgroundColor: '#5e72e4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createEstadosCrecimientoChart() {
+            const ctx = document.getElementById('chartEstadosCrecimiento');
+            if (!ctx) return;
+            if (charts.estadosCrecimiento) charts.estadosCrecimiento.destroy();
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                return;
+            }
+
+            const top10 = analytics.estadosConCrecimiento.slice(0, 10);
+
+            charts.estadosCrecimiento = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(e => e.estado),
+                    datasets: [{
+                        label: 'Crecimiento %',
+                        data: top10.map(e => e.crecimiento),
+                        backgroundColor: top10.map(e => e.crecimiento >= 0 ? '#10b981' : '#ef4444')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            ticks: { callback: value => value + '%' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showError(message) {
+            const errorSection = document.getElementById('errorSection');
+            errorSection.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            errorSection.style.display = 'block';
+        }
+
+        msalInstance.handleRedirectPromise().then(response => {
+            if (response) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('userName').textContent = response.account.name;
+                loadData();
+            }
+        });
+    </script>
+</body>
+</html>,
+                        data: top10.map(c => c.margenBruto),
+                        backgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabClientes() {
+            const tab = document.getElementById('tab-clientes');
+
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos de clientes disponibles</h3></div>';
+                return;
+            }
+
+            // Calcular CLV promedio
+            const clvPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.total, 0) / analytics.clientesOrdenados.length;
+
+            // Frecuencia promedio
+            const frecuenciaPromedio = analytics.clientesOrdenados.reduce((sum, c) => sum + c.frecuencia, 0) / analytics.clientesOrdenados.length;
+
+            // Segmentación RFM
+            const segmentos = {};
+            if (analytics.rfmData && analytics.rfmData.length > 0) {
+                analytics.rfmData.forEach(c => {
+                    if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
+                    segmentos[c.segmento]++;
+                });
+            }
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>CLV Promedio</h3>
+                        <div class="value">${formatCurrency(clvPromedio)}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Frecuencia Promedio</h3>
+                        <div class="value">${frecuenciaPromedio.toFixed(1)}</div>
+                        <div class="trend">compras por cliente</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Clientes VIP</h3>
+                        <div class="value">${segmentos['VIP'] || 0}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Clientes en Riesgo</h3>
+                        <div class="value">${segmentos['Riesgo'] || 0}</div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📊 Segmentación RFM</h3>
+                    <div class="info-item">• <strong>VIP:</strong> ${segmentos['VIP'] || 0} clientes (compra reciente, alta frecuencia, alto valor)</div>
+                    <div class="info-item">• <strong>Leales:</strong> ${segmentos['Leal'] || 0} clientes (compran regularmente)</div>
+                    <div class="info-item">• <strong>Ocasionales:</strong> ${segmentos['Ocasional'] || 0} clientes (compras esporádicas)</div>
+                    <div class="info-item">• <strong>En Riesgo:</strong> ${segmentos['Riesgo'] || 0} clientes (90+ días sin comprar)</div>
+                </div>
+
+                ${analytics.clientesInactivos && analytics.clientesInactivos.length > 0 ? `
+                    <div class="alert-card">
+                        <h3>⚠️ Clientes Inactivos (${CEO_CONFIG.diasClienteInactivo}+ días sin comprar)</h3>
+                        ${analytics.clientesInactivos.slice(0, 10).map(c => 
+                            `<div class="alert-item">• <strong>${c.nombre}</strong> - ${c.diasDesdeUltimaCompra} días - CLV: ${formatCurrency(c.total)}</div>`
+                        ).join('')}
+                    </div>
+                ` : ''}
+
+                <div class="charts">
+                    <div class="chart-card">
+                        <h3>Segmentación de Clientes</h3>
+                        <div class="chart-container">
+                            <canvas id="chartSegmentacion"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top 10 Clientes por CLV</h3>
+                        <div class="chart-container">
+                            <canvas id="chartTopCLV"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis RFM de Clientes (Top 20)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Segmento</th>
+                                <th>CLV</th>
+                                <th>Frecuencia</th>
+                                <th>Última Compra</th>
+                                <th>Días</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.rfmData && analytics.rfmData.length > 0 ? analytics.rfmData.slice(0, 20).map(c => `
+                                <tr>
+                                    <td>${c.nombre}</td>
+                                    <td><span class="badge ${c.segmento}">${c.segmento}</span></td>
+                                    <td>${formatCurrency(c.total)}</td>
+                                    <td>${c.frecuencia}</td>
+                                    <td>${c.ultimaCompra.toLocaleDateString('es-MX')}</td>
+                                    <td class="${c.diasDesdeUltimaCompra > CEO_CONFIG.diasClienteInactivo ? 'trend down' : 'trend up'}">
+                                        ${c.diasDesdeUltimaCompra}
+                                    </td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="6">No hay datos disponibles</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createSegmentacionChart();
+                createTopCLVChart();
+            }, 100);
+        }
+
+        function createSegmentacionChart() {
+            const ctx = document.getElementById('chartSegmentacion');
+            if (!ctx) return;
+            if (charts.segmentacion) charts.segmentacion.destroy();
+
+            if (!analytics.rfmData || analytics.rfmData.length === 0) {
+                return;
+            }
+
+            const segmentos = {};
+            analytics.rfmData.forEach(c => {
+                if (!segmentos[c.segmento]) segmentos[c.segmento] = 0;
+                segmentos[c.segmento]++;
+            });
+
+            charts.segmentacion = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(segmentos),
+                    datasets: [{
+                        data: Object.values(segmentos),
+                        backgroundColor: ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function createTopCLVChart() {
+            const ctx = document.getElementById('chartTopCLV');
+            if (!ctx) return;
+            if (charts.topCLV) charts.topCLV.destroy();
+
+            if (!analytics.clientesOrdenados || analytics.clientesOrdenados.length === 0) {
+                return;
+            }
+
+            const top10 = analytics.clientesOrdenados.slice(0, 10);
+
+            charts.topCLV = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(c => c.nombre),
+                    datasets: [{
+                        label: 'CLV',
+                        data: top10.map(c => c.total),
+                        backgroundColor: '#5e72e4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabProductos() {
+            const tab = document.getElementById('tab-productos');
+
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos de productos disponibles</h3></div>';
+                return;
+            }
+
+            const productosA = analytics.productosConCategoria.filter(p => p.categoria === 'A');
+            const productosB = analytics.productosConCategoria.filter(p => p.categoria === 'B');
+            const productosC = analytics.productosConCategoria.filter(p => p.categoria === 'C');
+
+            tab.innerHTML = `
+                <div class="kpis">
+                    <div class="kpi-card">
+                        <h3>Productos Categoría A</h3>
+                        <div class="value">${productosA.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Top 80% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Productos Categoría B</h3>
+                        <div class="value">${productosB.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Siguiente 15% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Productos Categoría C</h3>
+                        <div class="value">${productosC.length}</div>
+                        <div style="font-size: 0.9em; margin-top: 8px;">Último 5% de ventas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Margen Promedio</h3>
+                        <div class="value">${(analytics.productosConCategoria.reduce((sum, p) => sum + p.margen, 0) / analytics.productosConCategoria.length * 100).toFixed(1)}%</div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Top 15 Productos por Ventas</h3>
+                    <div class="chart-container">
+                        <canvas id="chartTopProductos"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis ABC de Productos</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Ventas</th>
+                                <th>Margen %</th>
+                                <th>% Acum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.productosConCategoria.map((p, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${p.nombre}</td>
+                                    <td><span class="badge ${p.categoria}">${p.categoria}</span></td>
+                                    <td>${formatCurrency(p.valor)}</td>
+                                    <td class="${p.margen >= CEO_CONFIG.margenObjetivo ? 'trend up' : 'trend down'}">
+                                        ${(p.margen * 100).toFixed(1)}%
+                                    </td>
+                                    <td>${p.pctAcumulado.toFixed(1)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => createTopProductosChart(), 100);
+        }
+
+        function createTopProductosChart() {
+            const ctx = document.getElementById('chartTopProductos');
+            if (!ctx) return;
+            if (charts.topProductos) charts.topProductos.destroy();
+
+            if (!analytics.productosConCategoria || analytics.productosConCategoria.length === 0) {
+                return;
+            }
+
+            const top15 = analytics.productosConCategoria.slice(0, 15);
+
+            charts.topProductos = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top15.map(p => p.nombre.substring(0, 30)),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: top15.map(p => p.valor),
+                        backgroundColor: top15.map(p => {
+                            if (p.categoria === 'A') return '#10b981';
+                            if (p.categoria === 'B') return '#f59e0b';
+                            return '#ef4444';
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTabGeografia() {
+            const tab = document.getElementById('tab-geografia');
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                tab.innerHTML = '<div class="loading"><h3>No hay datos geográficos disponibles</h3></div>';
+                return;
+            }
+
+            tab.innerHTML = `
+                <div class="chart-card">
+                    <h3>Top 10 Estados por Ventas</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEstadosVentas"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3>Top 10 Estados por Crecimiento</h3>
+                    <div class="chart-container">
+                        <canvas id="chartEstadosCrecimiento"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Análisis por Estado</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Estado</th>
+                                <th>Ventas 2025</th>
+                                <th>Crecimiento vs 2024</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${analytics.estadosConCrecimiento.map((e, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${e.estado}</td>
+                                    <td>${formatCurrency(e.ventas)}</td>
+                                    <td class="${e.crecimiento >= 0 ? 'trend up' : 'trend down'}">
+                                        ${e.crecimiento >= 0 ? '↗' : '↘'} ${Math.abs(e.crecimiento).toFixed(1)}%
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            setTimeout(() => {
+                createEstadosVentasChart();
+                createEstadosCrecimientoChart();
+            }, 100);
+        }
+
+        function createEstadosVentasChart() {
+            const ctx = document.getElementById('chartEstadosVentas');
+            if (!ctx) return;
+            if (charts.estadosVentas) charts.estadosVentas.destroy();
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                return;
+            }
+
+            const top10 = analytics.estadosConCrecimiento
+                .sort((a, b) => b.ventas - a.ventas)
+                .slice(0, 10);
+
+            charts.estadosVentas = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(e => e.estado),
+                    datasets: [{
+                        label: 'Ventas',
+                        data: top10.map(e => e.ventas),
+                        backgroundColor: '#5e72e4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: value => formatCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createEstadosCrecimientoChart() {
+            const ctx = document.getElementById('chartEstadosCrecimiento');
+            if (!ctx) return;
+            if (charts.estadosCrecimiento) charts.estadosCrecimiento.destroy();
+
+            if (!analytics.estadosConCrecimiento || analytics.estadosConCrecimiento.length === 0) {
+                return;
+            }
 
             const top10 = analytics.estadosConCrecimiento.slice(0, 10);
 
