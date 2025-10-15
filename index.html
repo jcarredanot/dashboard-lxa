@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>LXA — Prueba de Login MSAL</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- MSAL desde jsDelivr -->
   <script defer src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/dist/msal-browser.min.js"></script>
   <style>
     body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f7fb}
@@ -16,14 +17,24 @@
 <body>
   <div class="card">
     <h2>🔐 LXA — Prueba de Login</h2>
-    <p>Esta página solo prueba el flujo de inicio de sesión con Microsoft (MSAL). Si esto funciona, integraremos el dashboard completo.</p>
-    <div class="row"><button id="btnLogin" class="btn">Iniciar sesión con Microsoft</button></div>
-    <div class="row"><button id="btnLogout" class="btn" style="background:#111">Cerrar sesión</button></div>
-    <div class="row"><small id="status">Estado: listo</small></div>
+    <p>Esta página solo prueba el flujo de inicio de sesión con Microsoft (MSAL).  
+    Si esto funciona, integramos el dashboard completo.</p>
+
+    <div class="row">
+      <button id="btnLogin" class="btn">Iniciar sesión con Microsoft</button>
+    </div>
+    <div class="row">
+      <button id="btnLogout" class="btn" style="background:#111">Cerrar sesión</button>
+    </div>
+
+    <div class="row"><small id="status">Estado: cargando…</small></div>
     <div class="row"><pre id="out">(sin datos)</pre></div>
   </div>
 
   <script>
+    // ======================
+    // CONFIGURACIÓN MSAL
+    // ======================
     const msalConfig = {
       auth: {
         clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
@@ -34,52 +45,81 @@
     };
     const GRAPH_SCOPES = ['User.Read','Files.Read'];
 
-    const $ = (id)=>document.getElementById(id);
-    const log = (msg)=>{ console.log(msg); $('status').textContent = 'Estado: ' + msg; };
-    const show = (obj)=> $('out').textContent = typeof obj==='string' ? obj : JSON.stringify(obj, null, 2);
+    // ======================
+    // UTILIDADES
+    // ======================
+    const $ = id => document.getElementById(id);
+    const log = msg => { console.log(msg); $('status').textContent = 'Estado: ' + msg; };
+    const show = obj => $('out').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
 
+    // ======================
+    // INICIALIZACIÓN INMEDIATA
+    // ======================
     let msalInstance;
-    window.addEventListener('load', ()=>{
+    (function initNow(){
       try {
+        if (typeof msal === 'undefined') {
+          alert('MSAL no cargó. Verifica acceso a:\nhttps://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0');
+          return;
+        }
         msalInstance = new msal.PublicClientApplication(msalConfig);
         log('MSAL inicializado correctamente');
-        msalInstance.handleRedirectPromise().then(resp=>{
-          if (resp?.account) {
-            log('Sesión restaurada');
-            afterLogin(resp.account);
-          }
-        }).catch(e=>console.error('handleRedirectPromise error', e));
-      } catch(e) {
-        alert('MSAL no cargó. Revisa conexión a https://cdn.jsdelivr.net');
-        console.error(e);
+        msalInstance.handleRedirectPromise()
+          .then(resp => {
+            if (resp?.account) {
+              log('Sesión restaurada');
+              afterLogin(resp.account);
+            }
+          })
+          .catch(e => console.error('handleRedirectPromise error', e));
+      } catch (e) {
+        console.error('Fallo al inicializar MSAL:', e);
+        alert('Fallo al inicializar MSAL: ' + e.message);
       }
-    });
+    })();
 
-    $('btnLogin').onclick = async ()=>{
-      try{
+    // ======================
+    // BOTONES
+    // ======================
+    $('btnLogin').onclick = async () => {
+      try {
+        if (!msalInstance) throw new Error('MSAL no inicializado');
         log('Iniciando loginPopup…');
         const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
         afterLogin(resp.account);
-      }catch(e){ alert('Error login: '+e.message); console.error(e); }
+      } catch (e) {
+        alert('Error login: ' + e.message);
+        console.error(e);
+      }
     };
 
-    $('btnLogout').onclick = async ()=>{
-      try{
+    $('btnLogout').onclick = async () => {
+      try {
+        if (!msalInstance) throw new Error('MSAL no inicializado');
         log('Cerrando sesión…');
         await msalInstance.logoutPopup();
         show('(sin datos)');
-      }catch(e){ alert('Error logout: '+e.message); console.error(e); }
+      } catch (e) {
+        alert('Error logout: ' + e.message);
+        console.error(e);
+      }
     };
 
-    async function afterLogin(account){
-      try{
+    // ======================
+    // POST-LOGIN: Prueba /me
+    // ======================
+    async function afterLogin(account) {
+      try {
         const tokenResp = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
         log('Token OK, llamando Graph /me…');
         const me = await fetch('https://graph.microsoft.com/v1.0/me', {
-          headers: { Authorization: 'Bearer '+tokenResp.accessToken }
-        }).then(r=>r.json());
+          headers: { Authorization: 'Bearer ' + tokenResp.accessToken }
+        }).then(r => r.json());
         show(me);
-      }catch(e){ alert('Error post-login: '+e.message); console.error(e); }
+      } catch (e) {
+        alert('Error post-login: ' + e.message);
+        console.error(e);
+      }
     }
   </script>
 </body>
