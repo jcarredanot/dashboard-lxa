@@ -364,14 +364,23 @@
         for (var i = 0; i < data.length; i++) {
             var row = data[i];
             
-            // Parsear la fecha
+            // Parsear la fecha - maneja ambos formatos: texto y número de Excel
             var fecha = null;
             var salidaValue = row['Salida'];
+            
             if (typeof salidaValue === 'string' && salidaValue.includes('/')) {
+                // Formato texto: "14/10/2025"
                 var parts = salidaValue.split('/');
                 if (parts.length === 3) {
                     fecha = new Date(parts[2], parts[1] - 1, parts[0]);
                 }
+            } else if (typeof salidaValue === 'number') {
+                // Formato número de Excel (días desde 1900-01-01)
+                var excelEpoch = new Date(1899, 11, 30);
+                fecha = new Date(excelEpoch.getTime() + salidaValue * 86400000);
+            } else if (salidaValue instanceof Date) {
+                // Ya es un objeto Date
+                fecha = salidaValue;
             }
             
             // Parsear precios (remover $ y comas)
