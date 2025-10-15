@@ -1,84 +1,8 @@
 <!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>LXA — Prueba de Login MSAL</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- MSAL (defer) -->
-  <script defer src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js"></script>
-  <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f7fb}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:24px;max-width:520px;width:92%}
-    .btn{background:#5e72e4;color:#fff;border:none;border-radius:8px;padding:12px 18px;font-weight:600;cursor:pointer}
-    .row{margin-top:12px}
-    pre{background:#0b1020;color:#d1e7ff;padding:12px;border-radius:8px;overflow:auto;max-height:300px}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h2>🔐 LXA — Prueba de Login</h2>
-    <p>Esta página sólo prueba el flujo de inicio de sesión con Microsoft (MSAL). Si esto funciona, integramos el dashboard completo.</p>
-    <div class="row"><button id="btnLogin" class="btn">Iniciar sesión con Microsoft</button></div>
-    <div class="row"><button id="btnLogout" class="btn" style="background:#111">Cerrar sesión</button></div>
-    <div class="row"><small id="status">Estado: listo</small></div>
-    <div class="row"><pre id="out">(sin datos)</pre></div>
-  </div>
-
+<html><head><meta charset="utf-8"><title>Click Test</title></head>
+<body style="display:grid;place-items:center;height:100vh;font-family:system-ui">
+  <button id="t" style="padding:12px 18px">Probar click</button>
   <script>
-    // --- CONFIG MSAL (USA TUS VALORES) ---
-    const msalConfig = {
-      auth: {
-        clientId: '9d480cdb-912b-4132-9882-f36d6c3b12e5',
-        authority: 'https://login.microsoftonline.com/45f5b6e6-42e0-4fdd-b61a-df489f75dc8c',
-        redirectUri: 'https://jcarredanot.github.io/dashboard-lxa/'
-      },
-      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
-    };
-    const GRAPH_SCOPES = ['User.Read','Files.Read'];
-
-    // --- util ---
-    const $ = (id)=>document.getElementById(id);
-    const log = (msg)=>{ console.log(msg); $('status').textContent = 'Estado: ' + msg; };
-    const show = (obj)=> $('out').textContent = typeof obj==='string' ? obj : JSON.stringify(obj, null, 2);
-
-    // --- INICIALIZACIÓN MSAL ---
-    let msalInstance;
-    (function init(){
-      if (!window.msal) { alert('MSAL no cargó. Revisa conexión a https://alcdn.msauth.net'); return; }
-      msalInstance = new msal.PublicClientApplication(msalConfig);
-      msalInstance.handleRedirectPromise().then(resp=>{
-        if (resp?.account) { log('sesión restaurada'); afterLogin(resp.account); }
-      }).catch(e=>console.error('handleRedirectPromise error', e));
-      log('MSAL listo');
-    })();
-
-    // --- BOTONES ---
-    $('btnLogin').onclick = async ()=>{
-      try{
-        log('iniciando loginPopup…');
-        const resp = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
-        afterLogin(resp.account);
-      }catch(e){ alert('Error login: '+e.message); }
-    };
-    $('btnLogout').onclick = async ()=>{
-      try{
-        log('cerrando sesión…');
-        await msalInstance.logoutPopup();
-        show('(sin datos)');
-      }catch(e){ alert('Error logout: '+e.message); }
-    };
-
-    // --- POST LOGIN: prueba de token silencioso y llamada a /me ---
-    async function afterLogin(account){
-      try{
-        const token = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
-        log('token OK, llamando Graph /me…');
-        const me = await fetch('https://graph.microsoft.com/v1.0/me', {
-          headers: { Authorization: 'Bearer '+token.accessToken }
-        }).then(r=>r.json());
-        show(me);
-      }catch(e){ alert('Error post-login: '+e.message); }
-    }
+    document.getElementById('t').onclick = ()=>alert('¡Click OK!');
   </script>
-</body>
-</html>
+</body></html>
